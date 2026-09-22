@@ -1,0 +1,140 @@
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, fonts, etc should be defined here.
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 50% 93.73%;
+    --foreground: 0 21.05% 44.71%;
+
+    --card: 0 50% 93.73%;
+    --card-foreground: 0 21.05% 44.71%;
+
+    --popover: 0 50% 93.73%;
+    --popover-foreground: 0 21.05% 44.71%;
+
+    --primary: 0 21.05% 44.71%;
+    --primary-foreground: 0 50% 93.73%;
+
+    --secondary: 0 44.23% 79.61%;
+    --secondary-foreground: 0 21.05% 44.71%;
+
+    --muted: 0 44.23% 79.61%;
+    --muted-foreground: 0 21.05% 44.71%;
+
+    --accent: 0 21.88% 62.35%;
+    --accent-foreground: 0 21.05% 44.71%;
+
+    --destructive: 0 21.05% 44.71%;
+    --destructive-foreground: 0 50% 93.73%;
+
+    --border: 0 21.88% 62.35%;
+    --input: 0 21.88% 62.35%;
+    --ring: 0 21.05% 44.71%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 50% 93.73%;
+    --sidebar-foreground: 0 21.05% 44.71%;
+    --sidebar-primary: 0 21.05% 44.71%;
+    --sidebar-primary-foreground: 0 50% 93.73%;
+    --sidebar-accent: 0 44.23% 79.61%;
+    --sidebar-accent-foreground: 0 21.05% 44.71%;
+    --sidebar-border: 0 21.88% 62.35%;
+    --sidebar-ring: 0 21.05% 44.71%;
+
+    --brand-50: 0 50% 93.73%;
+    --brand-100: 0 44.23% 79.61%;
+    --brand-200: 0 44.23% 79.61%;
+    --brand-300: 0 21.88% 62.35%;
+    --brand-400: 0 21.88% 62.35%;
+    --brand-500: 0 21.05% 44.71%;
+    --brand-600: 0 21.05% 44.71%;
+    --brand-700: 0 21.05% 44.71%;
+    --brand-800: 0 21.05% 44.71%;
+    --brand-900: 0 21.05% 44.71%;
+    --brand: 0 21.05% 44.71%;
+    --brand-foreground: 0 50% 93.73%;
+  }
+
+  .dark {
+    --background: 0 50% 93.73%;
+    --foreground: 0 21.05% 44.71%;
+
+    --card: 0 50% 93.73%;
+    --card-foreground: 0 21.05% 44.71%;
+
+    --popover: 0 50% 93.73%;
+    --popover-foreground: 0 21.05% 44.71%;
+
+    --primary: 0 21.05% 44.71%;
+    --primary-foreground: 0 50% 93.73%;
+
+    --secondary: 0 44.23% 79.61%;
+    --secondary-foreground: 0 21.05% 44.71%;
+
+    --muted: 0 44.23% 79.61%;
+    --muted-foreground: 0 21.05% 44.71%;
+
+    --accent: 0 21.88% 62.35%;
+    --accent-foreground: 0 21.05% 44.71%;
+
+    --destructive: 0 21.05% 44.71%;
+    --destructive-foreground: 0 50% 93.73%;
+
+    --border: 0 21.88% 62.35%;
+    --input: 0 21.88% 62.35%;
+    --ring: 0 21.05% 44.71%;
+
+    --sidebar-background: 0 50% 93.73%;
+    --sidebar-foreground: 0 21.05% 44.71%;
+    --sidebar-primary: 0 21.05% 44.71%;
+    --sidebar-primary-foreground: 0 50% 93.73%;
+    --sidebar-accent: 0 44.23% 79.61%;
+    --sidebar-accent-foreground: 0 21.05% 44.71%;
+    --sidebar-border: 0 21.88% 62.35%;
+    --sidebar-ring: 0 21.05% 44.71%;
+
+    --brand-50: 0 50% 93.73%;
+    --brand-100: 0 44.23% 79.61%;
+    --brand-200: 0 44.23% 79.61%;
+    --brand-300: 0 21.88% 62.35%;
+    --brand-400: 0 21.88% 62.35%;
+    --brand-500: 0 21.05% 44.71%;
+    --brand-600: 0 21.05% 44.71%;
+    --brand-700: 0 21.05% 44.71%;
+    --brand-800: 0 21.05% 44.71%;
+    --brand-900: 0 21.05% 44.71%;
+    --brand: 0 21.05% 44.71%;
+    --brand-foreground: 0 50% 93.73%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    overflow-x: hidden;
+  }
+
+  html {
+    overflow-x: hidden;
+  }
+
+  .container {
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
