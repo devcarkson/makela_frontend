@@ -49,6 +49,8 @@ const Cart = () => {
                       alt={item.product.name}
                       className="w-full h-full object-cover"
                       onError={(e) => (e.currentTarget.src = '/placeholder.svg')}
+                      loading="lazy"
+                      decoding="async"
                     />
                   </div>
                   

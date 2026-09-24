@@ -232,17 +232,14 @@ const Products = () => {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <div>
                 {/* <h1 className="text-3xl font-bold">Products</h1> */}
-                <p className="text-muted-foreground">
-                  Showing {products.length} of {totalProducts} products
-                  {error && (
-                    <span className="text-xs ml-2 text-primary">
-                      (Sample data - API unavailable)
-                    </span>
-                  )}
-                </p>
+                {error && (
+                  <span className="text-xs ml-2 text-primary">
+                    (Sample data - API unavailable)
+                  </span>
+                )}
               </div>
 
-              <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
                 {isMobile && (
                   <Button
                     variant="outline"
@@ -256,7 +253,7 @@ const Products = () => {
                 )}
                 
                 <Select value={sortBy} onValueChange={setSortBy}>
-                  <SelectTrigger className="w-48">
+                  <SelectTrigger className="w-32 sm:w-48">
                     <SelectValue placeholder="Sort by" />
                   </SelectTrigger>
                   <SelectContent>
@@ -275,6 +272,7 @@ const Products = () => {
                     className="rounded-r-none"
                   >
                     <Grid className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1">Grid</span>
                   </Button>
                   <Button
                     variant={viewMode === 'list' ? 'default' : 'ghost'}
@@ -283,6 +281,7 @@ const Products = () => {
                     className="rounded-l-none"
                   >
                     <List className="h-4 w-4" />
+                    <span className="hidden sm:inline ml-1">List</span>
                   </Button>
                 </div>
               </div>

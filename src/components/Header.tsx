@@ -68,6 +68,9 @@ const Header = () => {
               src="/logo.jpeg?v=2"
               alt="Makela"
               className="block h-10 w-auto shrink-0"
+              loading="eager"
+              decoding="async"
+              fetchpriority="high"
             />
           </Link>
 

@@ -49,6 +49,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isSliderCard = false
               src={cartProduct.images[0]}
               alt={product.name}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div>
@@ -79,6 +81,8 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isSliderCard = false
         src={primaryImageUrl}
         alt={product.name}
         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+        loading="lazy"
+        decoding="async"
       />
     </div>
   );

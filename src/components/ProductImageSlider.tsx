@@ -18,6 +18,9 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
           src={images[0]}
           alt={productName}
           className="w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
         />
       </div>
     );
@@ -39,6 +42,9 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
           src={images[currentIndex]}
           alt={`${productName} - Image ${currentIndex + 1}`}
           className="w-full h-full object-cover"
+          loading="eager"
+          decoding="async"
+          fetchpriority="high"
         />
         
         {/* Navigation Arrows */}
@@ -80,6 +86,8 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
               src={image}
               alt={`${productName} thumbnail ${index + 1}`}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </button>
         ))}

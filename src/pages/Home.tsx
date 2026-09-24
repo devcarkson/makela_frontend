@@ -143,6 +143,9 @@ const Home = () => {
                         alt=""
                         className="absolute inset-0 h-full w-full object-cover md:static md:h-full md:object-contain"
                         style={{ objectPosition: slide.imagePosition }}
+                        loading="eager"
+                        decoding="async"
+                        fetchpriority="high"
                       />
                     </div>
 

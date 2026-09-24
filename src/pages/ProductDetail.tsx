@@ -150,10 +150,12 @@ const ProductDetail = () => {
       description: (
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 rounded-lg overflow-hidden bg-muted">
-            <img
+              <img
               src={cartProduct.images[0]}
               alt={product.name}
               className="w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
             />
           </div>
           <div>
