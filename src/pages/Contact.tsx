@@ -22,22 +22,47 @@ const Contact = () => {
     setLoading(true);
     setSuccess('');
     setError('');
+
     try {
-      await apiClient.post('/auth/contact/', {
+      const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+      const fullUrl = `${baseUrl.replace(/\/+$/, '')}/auth/contact/`.replace(/\/+/g, '/').replace('https:/', 'https://').replace('http:/', 'http://');
+      console.log('Contact form submitting to:', fullUrl);
+      console.log('API base URL:', baseUrl);
+
+      const response = await apiClient.post('/auth/contact/', {
         first_name: firstName,
         last_name: lastName,
         email,
         subject,
         message,
       });
-      setSuccess('Message sent! We will get back to you soon.');
-      setFirstName('');
-      setLastName('');
-      setEmail('');
-      setSubject('');
-      setMessage('');
+
+      if (response.status === 201 || response.status === 200) {
+        setSuccess('Message sent successfully! We will get back to you soon.');
+        setFirstName('');
+        setLastName('');
+        setEmail('');
+        setSubject('');
+        setMessage('');
+      }
     } catch (err: any) {
-      setError('Failed to send message. Please try again.');
+      console.error('Contact form error:', err);
+      let errorMessage = 'Failed to send message. Please try again.';
+
+      if (err?.response?.data) {
+        if (typeof err.response.data === 'object') {
+          const errors = Object.entries(err.response.data)
+            .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
+            .join('; ');
+          errorMessage = errors;
+        } else {
+          errorMessage = err.response.data;
+        }
+      } else if (err?.message) {
+        errorMessage = err.message;
+      }
+
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

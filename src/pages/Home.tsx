@@ -6,6 +6,7 @@ import FeaturedSlider from '@/components/FeaturedSlider';
 import SkeletonFeaturedSlider from '@/components/SkeletonFeaturedSlider';
 import SimpleProductCard from '@/components/SimpleProductCard';
 import SkeletonProductCard from '@/components/SkeletonProductCard';
+import LoadingSpinner from '@/components/LoadingSpinner';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Gift, HeadphonesIcon, Shield, ShoppingBag, Sparkles, Truck } from 'lucide-react';
 import { useFeaturedProducts, useNewArrivalProducts, useProducts } from '@/hooks/useProducts';
@@ -114,6 +115,15 @@ const Home = () => {
 
     return () => window.clearInterval(autoSlide);
   }, [api, count, isPaused]);
+
+  if (isLoadingFeatured && isLoadingNew && isLoadingProducts &&
+      !featuredProducts && !newArrivals && allProducts.length === 0) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <LoadingSpinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen w-full overflow-x-hidden">

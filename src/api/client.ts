@@ -5,6 +5,7 @@ const PUBLIC_ENDPOINTS = [
   '/auth/login/', 
   '/auth/register/', 
   '/auth/token/refresh/',
+  '/auth/contact/',
   '/products', 
   '/home', 
   '/categories', 

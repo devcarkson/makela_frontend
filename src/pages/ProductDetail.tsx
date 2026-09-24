@@ -74,10 +74,8 @@ const ProductDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen w-full overflow-x-hidden">
-        <div className="container mx-auto px-4 py-8">
-          <LoadingSpinner size="lg" className="py-16" />
-        </div>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <LoadingSpinner size="lg" />
       </div>
     );
   }
