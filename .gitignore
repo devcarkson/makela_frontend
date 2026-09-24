@@ -34,8 +34,8 @@ vite.config.ts.local
 # TypeScript
 *.tsbuildinfo
 
-# Lock files
-package-lock.json
+# Lock files - keep package-lock.json for consistent deployments
+# package-lock.json
 yarn.lock
 bun.lockb
 
