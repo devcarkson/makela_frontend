@@ -163,4 +163,4 @@ export const storeOrderReference = (orderRef: string, orderData: any): void => {
 /**
  * Default WhatsApp business number (can be moved to environment variables)
  */
-export const DEFAULT_WHATSAPP_NUMBER = '2347040080721';
+export const DEFAULT_WHATSAPP_NUMBER = '447760955159';

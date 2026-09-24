@@ -47,7 +47,6 @@ export const useProductsInfinite = (params?: Record<string, unknown>) => {
       return failureCount < 2;
     },
     retryDelay: 1000,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
 };
 
@@ -62,7 +61,6 @@ export const useProducts = (params?: Record<string, unknown>) => {
       return failureCount < 2;
     },
     retryDelay: 1000,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache
   });
 };
 
@@ -77,10 +75,6 @@ export const useFeaturedProducts = () => {
       return failureCount < 2;
     },
     retryDelay: 500, // Faster retry
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-    refetchOnWindowFocus: false, // Don't refetch when window gains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 };
 
@@ -95,10 +89,6 @@ export const useNewArrivalProducts = () => {
       return failureCount < 2;
     },
     retryDelay: 500, // Faster retry
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
-    gcTime: 10 * 60 * 1000, // 10 minutes garbage collection
-    refetchOnWindowFocus: false, // Don't refetch when window gains focus
-    refetchOnMount: false, // Don't refetch on component mount if data exists
   });
 };
 
@@ -113,6 +103,5 @@ export const useProduct = (slug: string) => {
       return failureCount < 2;
     },
     retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 };

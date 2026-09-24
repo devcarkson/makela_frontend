@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useReducer, ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, ReactNode, useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { fetchCart, addCartItem, removeCartItem, updateCartItem, clearCart as clearCartApi } from '../api/cart';
 import { Product } from '../types/product.types';
@@ -8,6 +8,7 @@ export interface CartItem {
   id?: string;
   product: Product;
   quantity: number;
+  backendId?: string;
 }
 
 export interface Cart {
@@ -15,21 +16,22 @@ export interface Cart {
   total: number;
 }
 
-type CartAction = 
+type CartAction =
   | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number } }
   | { type: 'REMOVE_ITEM'; payload: { productId: string } }
   | { type: 'UPDATE_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'CLEAR_CART' }
-  | { type: 'SET_CART'; payload: Cart };
+  | { type: 'SET_CART'; payload: Cart }
+  | { type: 'SET_ITEM_ID'; payload: { productId: string; itemId: string } };
 
 interface CartContextType {
   cart: Cart;
-  addToCart: (product: Product, quantity?: number) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
-  clearCart: () => void;
+  addToCart: (product: Product, quantity?: number) => Promise<void>;
+  removeFromCart: (productId: string) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  clearCart: () => Promise<void>;
   getItemCount: () => number;
-  loading: boolean; // <-- add this
+  loading: boolean;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -39,7 +41,7 @@ const cartReducer = (state: Cart, action: CartAction): Cart => {
     case 'ADD_ITEM': {
       const { product, quantity } = action.payload;
       const existingItem = state.items.find(item => item.product.id.toString() === product.id.toString());
-      
+
       let newItems: CartItem[];
       if (existingItem) {
         newItems = state.items.map(item =>
@@ -50,51 +52,85 @@ const cartReducer = (state: Cart, action: CartAction): Cart => {
       } else {
         newItems = [...state.items, { product, quantity }];
       }
-      
+
       const total = newItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
       return { items: newItems, total };
     }
-    
+
     case 'REMOVE_ITEM': {
       const newItems = state.items.filter(item => item.product.id.toString() !== action.payload.productId);
       const total = newItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
       return { items: newItems, total };
     }
-    
+
     case 'UPDATE_QUANTITY': {
       const { productId, quantity } = action.payload;
       if (quantity <= 0) {
         return cartReducer(state, { type: 'REMOVE_ITEM', payload: { productId } });
       }
-      
+
       const newItems = state.items.map(item =>
         item.product.id.toString() === productId ? { ...item, quantity } : item
       );
       const total = newItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
       return { items: newItems, total };
     }
-    
+
     case 'CLEAR_CART':
       return { items: [], total: 0 };
-    
-    case 'SET_CART': {
+
+    case 'SET_CART':
       return action.payload;
+
+    case 'SET_ITEM_ID': {
+      const { productId, itemId } = action.payload;
+      const newItems = state.items.map(item =>
+        item.product.id.toString() === productId
+          ? { ...item, backendId: itemId }
+          : item
+      );
+      return { ...state, items: newItems };
     }
-    
+
     default:
       return state;
   }
 };
 
+interface BackendCartItem {
+  id: string | number;
+  product: Product;
+  quantity: number;
+}
+
+interface BackendCartResponse {
+  items?: BackendCartItem[];
+  subtotal?: number;
+}
+
+const normalizeBackendCart = (backendCart: BackendCartResponse): Cart => {
+  const itemsWithBackendIds = (backendCart.items || []).map(
+    (item: BackendCartItem) => ({
+      product: item.product,
+      quantity: item.quantity,
+      backendId: String(item.id),
+    })
+  );
+  return {
+    items: itemsWithBackendIds,
+    total: backendCart.subtotal || 0,
+  };
+};
+
 export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { isAuthenticated } = useAuth();
 
-  // Add a loading state to prevent UI from showing stale cart
-  const [loading, setLoading] = React.useState(true);
+  const [loading, setLoading] = useState(false);
+  const isFirstRender = useRef(true);
 
-  // Initialize cart from localStorage for unauthenticated users only
+  // Load initial cart from localStorage — instant, no network call
   const getInitialCart = (): Cart => {
-    if (typeof window !== 'undefined' && !isAuthenticated) {
+    if (typeof window !== 'undefined') {
       const savedCart = localStorage.getItem('cart');
       if (savedCart) {
         try {
@@ -107,33 +143,66 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return { items: [], total: 0 };
   };
 
-  const [cart, dispatch] = useReducer(cartReducer, getInitialCart());
+  const [cart, dispatch] = useReducer(cartReducer, undefined, getInitialCart);
 
-  // Save cart to localStorage for unauthenticated users
-  React.useEffect(() => {
-    if (!isAuthenticated && typeof window !== 'undefined') {
+  // Save cart to localStorage on every change — instant persistence, no frontend cache/stale
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
       localStorage.setItem('cart', JSON.stringify(cart));
-      // console.log('Saved cart to localStorage:', cart);
     }
-  }, [cart, isAuthenticated]);
+  }, [cart]);
 
-  // Always fetch backend cart on mount and when auth changes
-  React.useEffect(() => {
+  // Fetch cart directly from backend and update state
+  const refreshCart = useCallback(async () => {
+    try {
+      const backendCart = await fetchCart();
+      dispatch({ type: 'SET_CART', payload: normalizeBackendCart(backendCart) });
+    } catch (e) {
+      console.error('Error fetching cart:', e);
+    }
+  }, []);
+
+  // Sync with backend ONLY on auth state change (login/logout), not on mount
+  // Mount loads from localStorage instantly — no network delay, no race condition
+  useEffect(() => {
+    // Skip on first render — localStorage already loaded via getInitialCart
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+
+    let cancelled = false;
+
     const syncCart = async () => {
       if (isAuthenticated) {
+        // Merging guest cart into backend on login
+        const savedCart = localStorage.getItem('cart');
+        if (savedCart) {
+          try {
+            const guestCart = JSON.parse(savedCart);
+            if (guestCart.items && guestCart.items.length > 0) {
+              for (const item of guestCart.items) {
+                try {
+                  await addCartItem(Number(item.product.id), item.quantity);
+                } catch (e) {
+                  console.error('Error merging guest cart item:', e);
+                }
+              }
+            }
+          } catch (e) {
+            console.error('Error parsing guest cart for merge:', e);
+          }
+        }
+
+        setLoading(true);
         try {
-          const backendCart = await fetchCart();
-          const mappedCart = {
-            items: backendCart.items || [],
-            total: backendCart.subtotal || 0,
-          };
-          dispatch({ type: 'SET_CART', payload: mappedCart });
-          localStorage.removeItem('cart'); // Clear local cart
+          await refreshCart();
+          if (!cancelled) localStorage.removeItem('cart');
         } catch (e) {
           console.error('Error syncing cart:', e);
         }
       } else {
-        // For unauthenticated users, load from localStorage
+        // Logging out: load from localStorage
         const savedCart = localStorage.getItem('cart');
         if (savedCart) {
           try {
@@ -145,86 +214,91 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           dispatch({ type: 'SET_CART', payload: { items: [], total: 0 } });
         }
       }
-      setLoading(false);
+      if (!cancelled) setLoading(false);
     };
-    setLoading(true);
+
     syncCart();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated]);
 
-  // Debug log for cart state
-  console.log('CartContext: cart', cart, 'loading', loading);
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, refreshCart]);
 
+  // Every action: optimistic dispatch (instant) + direct single backend API call (no refetch)
   const addToCart = async (product: Product, quantity = 1) => {
+    // Optimistic update — instant UI for both guest and logged-in users
+    dispatch({ type: 'ADD_ITEM', payload: { product, quantity } });
+
     if (isAuthenticated) {
       try {
-        await addCartItem(Number(product.id), quantity);
-        const backendCart = await fetchCart();
-        const mappedCart = {
-          items: backendCart.items || [],
-          total: backendCart.subtotal || 0,
-        };
-        dispatch({ type: 'SET_CART', payload: mappedCart });
+        const response = await addCartItem(Number(product.id), quantity);
+        const backendId = response?.data?.id || response?.data?.item?.id;
+        if (backendId) {
+          dispatch({ type: 'SET_ITEM_ID', payload: { productId: String(product.id), itemId: String(backendId) } });
+        }
       } catch (e) {
+        dispatch({ type: 'REMOVE_ITEM', payload: { productId: String(product.id) } });
         console.error('addCartItem error:', e);
       }
-    } else {
-      dispatch({ type: 'ADD_ITEM', payload: { product, quantity } });
     }
   };
 
   const removeFromCart = async (productId: string) => {
+    const item = cart.items.find(i => i.product.id.toString() === productId);
+    const backendItemId = item?.backendId;
+
+    // Optimistic update — instant UI
+    dispatch({ type: 'REMOVE_ITEM', payload: { productId } });
+
     if (isAuthenticated) {
       try {
-        // Always fetch the latest cart before removing
-        const backendCart = await fetchCart();
-        const item = (backendCart.items || []).find(
-          (i: any) => i.product.id.toString() === productId
-        );
-        if (item && item.id) {
-          await removeCartItem(String(item.id));
-          const refreshedCart = await fetchCart();
-          const mappedCart = {
-            items: refreshedCart.items || [],
-            total: refreshedCart.subtotal || 0,
-          };
-          dispatch({ type: 'SET_CART', payload: mappedCart });
+        if (backendItemId) {
+          await removeCartItem(String(backendItemId));
+        } else {
+          const backendCart = await fetchCart();
+          const backendItem = (backendCart.items || []).find(
+            (i: BackendCartItem) => i.product.id.toString() === productId
+          );
+          if (backendItem?.id) {
+            await removeCartItem(String(backendItem.id));
+          }
         }
       } catch (e) {
         console.error('removeFromCart error:', e);
       }
-    } else {
-      dispatch({ type: 'REMOVE_ITEM', payload: { productId } });
     }
   };
 
   const updateQuantity = async (productId: string, quantity: number) => {
+    const item = cart.items.find(i => i.product.id.toString() === productId);
+    const backendItemId = item?.backendId;
+
+    // Optimistic update — instant UI
+    dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } });
+
     if (isAuthenticated) {
       try {
-        // Always fetch the latest cart before updating
-        const backendCart = await fetchCart();
-        const item = (backendCart.items || []).find(
-          (i: any) => i.product.id.toString() === productId
-        );
-        if (item && item.id) {
-          await updateCartItem(String(item.id), quantity, item.product.id);
-          const refreshedCart = await fetchCart();
-          const mappedCart = {
-            items: refreshedCart.items || [],
-            total: refreshedCart.subtotal || 0,
-          };
-          dispatch({ type: 'SET_CART', payload: mappedCart });
+        if (backendItemId) {
+          await updateCartItem(String(backendItemId), quantity, Number(productId));
+        } else {
+          const backendCart = await fetchCart();
+          const backendItem = (backendCart.items || []).find(
+            (i: BackendCartItem) => i.product.id.toString() === productId
+          );
+          if (backendItem?.id) {
+            await updateCartItem(String(backendItem.id), quantity, Number(productId));
+          }
         }
       } catch (e) {
         console.error('updateQuantity error:', e);
       }
-    } else {
-      dispatch({ type: 'UPDATE_QUANTITY', payload: { productId, quantity } });
     }
   };
 
   const clearCart = async () => {
+    // Optimistic update — instant UI
     dispatch({ type: 'CLEAR_CART' });
+
     if (isAuthenticated) {
       try {
         await clearCartApi();
@@ -232,7 +306,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         console.error('clearCart error:', e);
       }
     } else {
-      // Clear localStorage for unauthenticated users
       localStorage.removeItem('cart');
     }
   };
@@ -241,7 +314,6 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return cart.items.reduce((count, item) => count + item.quantity, 0);
   };
 
-  // Wrap children with loading check
   return (
     <CartContext.Provider value={{
       cart,
@@ -250,9 +322,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       updateQuantity,
       clearCart,
       getItemCount,
-      loading // <-- add this
+      loading,
     }}>
-      {loading ? null : children}
+      {children}
     </CartContext.Provider>
   );
 };

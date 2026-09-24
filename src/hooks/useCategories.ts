@@ -7,6 +7,5 @@ export const useCategories = () => {
     queryFn: getCategories,
     retry: 2,
     retryDelay: 1000,
-    staleTime: 5 * 60 * 1000, // 5 minutes cache
   });
 };

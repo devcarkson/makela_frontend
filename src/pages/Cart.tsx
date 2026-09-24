@@ -9,10 +9,7 @@ import { useCart } from '@/contexts/CartContext';
 import { getFirstImage } from '@/utils/imageUrl';
 
 const Cart = () => {
-  const { cart, updateQuantity, removeFromCart, clearCart, loading } = useCart();
-
-  console.log('Cart component - cart data:', cart);
-  console.log('Cart component - items length:', cart.items.length);
+  const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
 
   if (cart.items.length === 0) {
     return (
@@ -75,25 +72,25 @@ const Cart = () => {
                       
                       <div className="flex items-center justify-between md:justify-end gap-2">
                         <div className="flex items-center border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateQuantity(item.product.id.toString(), item.quantity - 1)}
-                            disabled={item.quantity <= 1 || loading}
-                            className="h-8 w-8 p-0"
-                          >
+<Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateQuantity(item.product.id.toString(), item.quantity - 1)}
+                          disabled={item.quantity <= 1}
+                          className="h-8 w-8 p-0"
+                        >
                             <Minus className="h-3 w-3" />
                           </Button>
                           <span className="px-2 py-1 min-w-[2rem] text-center text-sm">
                             {item.quantity}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => updateQuantity(item.product.id.toString(), item.quantity + 1)}
-                            disabled={item.quantity >= item.product.stock || loading}
-                            className="h-8 w-8 p-0"
-                          >
+<Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => updateQuantity(item.product.id.toString(), item.quantity + 1)}
+                          disabled={item.quantity >= item.product.stock}
+                          className="h-8 w-8 p-0"
+                        >
                             <Plus className="h-3 w-3" />
                           </Button>
                         </div>
@@ -103,7 +100,6 @@ const Cart = () => {
                           size="sm"
                           onClick={() => removeFromCart(item.product.id.toString())}
                           className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                          disabled={loading}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>

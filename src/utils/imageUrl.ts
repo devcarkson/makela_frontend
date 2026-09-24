@@ -2,8 +2,7 @@
 export const getImageUrl = (imagePath: string): string => {
   if (!imagePath) return '/placeholder.svg';
 
-  const baseUrl = import.meta.env.VITE_MEDIA_BASE_URL || 'http://localhost:8000';
-  // const baseUrl = import.meta.env.VITE_MEDIA_BASE_URL || 'https://makelacosmetic.uk';
+  const baseUrl = import.meta.env.VITE_MEDIA_BASE_URL || '';
 
   // If imagePath is already a full URL
   if (imagePath.startsWith('http')) {

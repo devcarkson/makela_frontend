@@ -7,6 +7,7 @@ import {
   ChevronDown,
   LogOut,
   LayoutDashboard,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +27,7 @@ const Header = () => {
   const { getItemCount } = useCart();
   const itemCount = getItemCount();
   const [isOpen, setIsOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const { isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
@@ -54,11 +56,12 @@ const Header = () => {
     } else {
       navigate('/products');
     }
+    setIsSearchOpen(false);
   };
 
   return (
     <header className="border-b bg-background fixed top-0 left-0 right-0 z-[100] w-full">
-      <div className="container mx-auto px-4">
+      <div className="w-full max-w-[1400px] mx-auto px-4">
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center shrink-0">
             <img
@@ -111,7 +114,7 @@ const Header = () => {
             </div>
           </nav>
 
-          <div className="flex shrink-0 items-center gap-2 sm:gap-4">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-4">
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -151,6 +154,17 @@ const Header = () => {
                 )}
                 <span className="hidden sm:inline ml-2">Cart</span>
               </Link>
+            </Button>
+
+            {/* Search icon — mobile only (desktop has search bar in header) */}
+            <Button
+              variant="ghost"
+              size="sm"
+              className="lg:hidden"
+              aria-label="Search"
+              onClick={() => setIsSearchOpen(true)}
+            >
+              <Search className="h-4 w-4" />
             </Button>
 
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -196,37 +210,54 @@ const Header = () => {
           </div>
         </div>
 
-        <div className="border-t px-0 py-3 lg:hidden">
-          <form onSubmit={handleSearchSubmit} className="flex gap-2">
-            <div className="relative flex-1">
-              <Input
-                type="text"
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-8 h-10"
-              />
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              {searchTerm && (
-                <button
-                  type="button"
-                  onClick={() => setSearchTerm('')}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-            <Button 
-              type="submit" 
-              size="sm" 
-              className="h-10 px-4"
-              disabled={!searchTerm.trim()}
+        {/* Mobile search overlay — appears when search icon is clicked */}
+        {isSearchOpen && (
+          <div className="fixed top-0 left-0 right-0 z-[110] bg-background border-b shadow-md lg:hidden">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="w-full flex h-16 items-center gap-2 px-4"
             >
-              Search
-            </Button>
-          </form>
-        </div>
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder="Search products..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-8 h-10"
+                  autoFocus
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                {searchTerm && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    ×
+                  </button>
+                )}
+              </div>
+              <Button
+                type="submit"
+                size="sm"
+                className="h-10 px-4"
+                disabled={!searchTerm.trim()}
+              >
+                Search
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-10 w-10 p-0"
+                onClick={() => setIsSearchOpen(false)}
+                aria-label="Close search"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </form>
+          </div>
+        )}
       </div>
     </header>
   );

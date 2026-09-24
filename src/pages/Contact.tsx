@@ -150,7 +150,7 @@ const Contact = () => {
                   <Phone className="h-5 w-5 text-primary" />
                   <div>
                     <p className="font-medium">Phone</p>
-                    <p className="text-muted-foreground">+1237040080721</p>
+                    <p className="text-muted-foreground">+44 7760 955159</p>
                   </div>
                 </div>
                 
@@ -159,8 +159,8 @@ const Contact = () => {
                   <div>
                     <p className="font-medium">Address</p>
                     <p className="text-muted-foreground">
-                      123 Eco Street 
-                      Green City, GC 12345, Nigeria
+                      30 Stanley Road
+                      Liverpool, UK
                     </p>
                   </div>
                 </div>

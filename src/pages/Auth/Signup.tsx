@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
-import axios from 'axios';
 import { Button } from '@/components/ui/button';
+import apiClient from '@/api/client';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -62,7 +62,7 @@ const Signup = () => {
         last_name: formData.last_name,
       };
 
-      await axios.post('https://makelacosmetic.uk/api/auth/register/', payload);
+      await apiClient.post('/auth/register/', payload);
 
       toast.success('🎉 Account created! You can now log in.');
       setTimeout(() => {

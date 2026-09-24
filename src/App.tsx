@@ -1,9 +1,7 @@
 
 // src/App.tsx
-import React, { useEffect } from "react";
+import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import { useQueryClient } from "@tanstack/react-query";
-import { prefetchHomePageData } from "@/utils/prefetch";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
@@ -30,18 +28,11 @@ import OrderDetail from '@/pages/OrderDetail';
 import Wishlist from '@/pages/Wishlist';
 import Notifications from '@/pages/Notifications';
 export default function App() {
-  const queryClient = useQueryClient();
-
-  // Prefetch critical data when app loads
-  useEffect(() => {
-    prefetchHomePageData(queryClient);
-  }, [queryClient]);
-
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       <ScrollToTop />
       <Header />
-      <main className="flex-1 w-full overflow-x-hidden pt-36 lg:pt-20">
+      <main className="flex-1 w-full overflow-x-hidden pt-16 lg:pt-20">
         <Routes>
           {/* public */}
           <Route path="/" element={<Home />} />
