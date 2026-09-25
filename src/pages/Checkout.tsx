@@ -1,44 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { useForm, FormProvider } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
-import CheckoutForm from '@/components/CheckoutForm';
+import { ShippingFields, PaymentSection } from '@/components/CheckoutForm';
+import { CheckoutFormData } from '@/components/CheckoutFormTypes';
 import OrderSummary from '@/components/OrderSummary';
 import OrderConfirmationModal from '@/components/OrderConfirmationModal';
-import {
-  formatWhatsAppMessage,
-  generateWhatsAppURL,
-  generateOrderReference,
-  formatOrderTime,
-  storeOrderReference,
-  DEFAULT_WHATSAPP_NUMBER,
-  type WhatsAppOrderData
-} from '@/utils/whatsapp';
+import apiClient from '@/api/client';
+import { User, CreditCard, Loader } from 'lucide-react';
 
-interface CheckoutFormData extends WhatsAppOrderData {
-  payment_method: string;
-}
-
-const Checkout = () => {
-  const { cart, loading: cartLoading } = useCart();
-  // Debug log for checkout cart state
-  console.log('Checkout page: cart', cart, 'loading', cartLoading);
+const Checkout: React.FC = () => {
+  const { cart, clearCart } = useCart();
   const { isAuthenticated, logout, email: userEmail } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
-  const [authChecked, setAuthChecked] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [pendingOrderData, setPendingOrderData] = useState<any>(null);
+  const [pendingOrderData, setPendingOrderData] = useState<CheckoutFormData | null>(null);
 
-  // Allow both authenticated and guest checkout for WhatsApp orders
+  const methods = useForm<CheckoutFormData>({
+    defaultValues: {
+      payment_method: 'stripe',
+      shipping_country: 'GB',
+      phone_country_code: '+44',
+    }
+  });
+
   useEffect(() => {
-    setAuthChecked(true);
-  }, []);
+    if (!isAuthenticated) {
+      navigate('/login?redirect=/checkout');
+    }
+  }, [isAuthenticated, navigate]);
 
-  const handleWhatsAppOrder = async (formData: CheckoutFormData) => {
+  const handleCheckoutSubmit = async (formData: CheckoutFormData) => {
     if (!cart?.items?.length) {
       toast.error('Your cart is empty');
       navigate('/products');
@@ -46,55 +44,43 @@ const Checkout = () => {
     }
 
     try {
-      // Validate required fields
-      const requiredFields = {
-        first_name: 'First Name',
-        last_name: 'Last Name',
-        shipping_address: 'Shipping Address',
-        shipping_city: 'City',
-        shipping_state: 'State/Province',
-        shipping_country: 'Country'
-      };
+      const requiredFields: Array<keyof CheckoutFormData> = [
+        'first_name',
+        'last_name',
+        'phone',
+        'phone_country_code',
+        'email',
+        'shipping_address',
+        'shipping_city',
+        'shipping_state_region',
+        'shipping_country',
+        'shipping_zip_code'
+      ];
 
-      for (const [field, name] of Object.entries(requiredFields)) {
-        if (!formData[field as keyof CheckoutFormData]?.trim()) {
-          throw new Error(`${name} is required`);
+      for (const field of requiredFields) {
+        const value = formData[field];
+        if (!value || (typeof value === 'string' && !value.trim())) {
+          const fieldNames: Record<string, string> = {
+            first_name: 'First Name',
+            last_name: 'Last Name',
+            phone: 'Phone Number',
+            phone_country_code: 'Phone Country Code',
+            email: 'Email Address',
+            shipping_address: 'Street Address',
+            shipping_city: 'City',
+            shipping_state_region: 'Region/Country',
+            shipping_country: 'Country',
+            shipping_zip_code: 'Postcode'
+          };
+          throw new Error(`${fieldNames[field as string] || field} is required`);
         }
       }
 
-      // Generate order reference and timestamp
-      const orderReference = generateOrderReference();
-      const orderTime = formatOrderTime();
-
-      // Get user email if authenticated
-      const finalEmail = isAuthenticated && userEmail ? userEmail : formData.email;
-
-      // Prepare order data for confirmation modal
-      const orderData = {
-        customerInfo: {
-          ...formData,
-          email: finalEmail
-        },
-        cartItems: cart.items,
-        total: cart.total,
-        orderReference,
-        orderTime
-      };
-
-      // Store pending order data and show confirmation modal
-      setPendingOrderData(orderData);
+      setPendingOrderData(formData);
       setShowConfirmModal(true);
-
-    } catch (error: any) {
-      console.error('WhatsApp Order Error:', error);
-      
-      let errorMessage = 'Failed to prepare WhatsApp order. Please try again.';
-      
-      if (error.message) {
-        errorMessage = error.message;
-      }
-
-      toast.error(errorMessage);
+    } catch (error: unknown) {
+      const err = error as Error;
+      toast.error(err.message || 'Please fill in all required fields');
     }
   };
 
@@ -105,48 +91,65 @@ const Checkout = () => {
     setShowConfirmModal(false);
 
     try {
-      // Format WhatsApp message
-      const whatsappMessage = formatWhatsAppMessage(pendingOrderData);
+      const phoneNumber = `${pendingOrderData.phone_country_code}${pendingOrderData.phone}`;
 
-      // Store order reference locally
-      storeOrderReference(pendingOrderData.orderReference, {
-        ...pendingOrderData,
-        status: 'submitted_whatsapp',
-        timestamp: Date.now()
-      });
+      const orderPayload = {
+        first_name: pendingOrderData.first_name,
+        last_name: pendingOrderData.last_name,
+        phone: phoneNumber,
+        email: pendingOrderData.email,
+        shipping_address: pendingOrderData.shipping_address,
+        shipping_city: pendingOrderData.shipping_city,
+        shipping_state: pendingOrderData.shipping_state_region,
+        shipping_country: pendingOrderData.shipping_country,
+        shipping_zip_code: pendingOrderData.shipping_zip_code,
+        payment_method: pendingOrderData.payment_method,
+      };
 
-      // Generate WhatsApp URL
-      const whatsappURL = generateWhatsAppURL(DEFAULT_WHATSAPP_NUMBER, whatsappMessage);
+      const response = await apiClient.post('/orders/checkout/', orderPayload);
 
-      // Show success message
-      toast.success('Opening WhatsApp...');
+      const orderData = response.data;
+      const orderReference = orderData.reference;
 
-      // Small delay to show the success message
-      setTimeout(() => {
-        // Open WhatsApp
-        window.open(whatsappURL, '_blank');
-        
-        // Show success message
-        toast.success(`Order #${pendingOrderData.orderReference} sent via WhatsApp!`);
-        
-        // Optionally clear cart after successful submission
-        // clearCart();
-      }, 500);
-
-    } catch (error: any) {
-      console.error('WhatsApp Order Error:', error);
-      toast.error('Failed to open WhatsApp. Please try again.');
+      if (pendingOrderData.payment_method === 'stripe') {
+        const paymentUrl = orderData.payment_url;
+        if (paymentUrl) {
+          toast.success('Redirecting to Stripe for secure payment...');
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error('Payment URL not received from server');
+        }
+      } else if (pendingOrderData.payment_method === 'flutterwave') {
+        const paymentUrl = orderData.payment_url;
+        if (paymentUrl) {
+          toast.success('Redirecting to Flutterwave for payment...');
+          window.location.href = paymentUrl;
+        } else {
+          throw new Error('Payment URL not received from server');
+        }
+      }
+    } catch (error: unknown) {
+      console.error('Checkout error:', error);
+      const err = error as { response?: { data?: { detail?: string } }; message?: string };
+      const errorMessage = err.response?.data?.detail || err.message || 'Failed to process order';
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
       setPendingOrderData(null);
     }
   };
 
-  if (cartLoading || !authChecked) {
+  if (!isAuthenticated) {
     return (
       <div className="container mx-auto px-4 py-16">
         <div className="text-center">
-          <h1 className="text-3xl font-bold mb-4">Verifying your session...</h1>
+          <h1 className="text-3xl font-bold mb-4">Authentication Required</h1>
+          <p className="text-muted-foreground mb-8">
+            Please log in or create an account to proceed with checkout.
+          </p>
+          <Button asChild>
+            <Link to="/login?redirect=/checkout">Login to Continue</Link>
+          </Button>
         </div>
       </div>
     );
@@ -177,42 +180,66 @@ const Checkout = () => {
         <h1 className="text-3xl font-bold mt-4">Checkout</h1>
       </div>
 
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2">
-          <CheckoutForm 
-            onSubmit={handleWhatsAppOrder}
-            isLoading={isLoading}
-            defaultValues={{
-              payment_method: 'flutterwave',
-              shipping_country: 'Nigeria'
-            }}
-          />
-        </div>
-        <div>
-          <OrderSummary cart={cart} />
-          <div className="mt-4 p-4 bg-secondary border border-secondary rounded-lg">
-            <h3 className="font-medium mb-2 text-primary flex items-center gap-2">
-              📱 WhatsApp Order Process
-            </h3>
-            <div className="text-sm text-primary space-y-2">
-              <p>• Fill in your shipping details</p>
-              <p>• Review your order summary</p>
-              <p>• Click "Order via WhatsApp"</p>
-              <p>• Complete payment with our agent</p>
+       <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(handleCheckoutSubmit)} className="w-full">
+          <div className="grid lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <User className="h-5 w-5" /> Shipping & Payment Information
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <ShippingFields isLoading={isLoading} />
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-1">
+              <OrderSummary cart={cart} />
+            </div>
+
+            <div className="lg:col-span-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <CreditCard className="h-5 w-5" /> Payment Method
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <PaymentSection isLoading={isLoading} />
+                </CardContent>
+              </Card>
+            </div>
+
+            <div className="lg:col-span-1 space-y-6">
+              <div className="p-4 bg-secondary border border-secondary rounded-lg">
+                <h3 className="font-medium mb-2 text-primary flex items-center gap-2">
+                  Secure Checkout Information
+                </h3>
+                <div className="text-sm text-primary space-y-2">
+                  <p>• Fill in your shipping details</p>
+                  <p>• Review your order summary</p>
+                  <p>• Confirm and pay securely with Stripe</p>
+                  <p>• Track your order in your account</p>
+                </div>
+              </div>
+              <div className="p-4 bg-accent border border-accent rounded-lg">
+                <h3 className="font-medium mb-2 text-primary">Delivery & Support</h3>
+                <p className="text-sm text-primary">
+                  Mon-Fri: 9:00 AM - 6:00 PM (GMT)<br />
+                  Sat: 10:00 AM - 4:00 PM (GMT)<br />
+                  Sun: Closed
+                </p>
+              </div>
             </div>
           </div>
-          <div className="mt-4 p-4 bg-accent border border-accent rounded-lg">
-            <h3 className="font-medium mb-2 text-primary">Business Hours</h3>
-            <p className="text-sm text-primary">
-              Mon-Fri: 9:00 AM - 6:00 PM<br/>
-              Sat: 10:00 AM - 4:00 PM<br/>
-              Sun: Closed
-            </p>
-          </div>
-        </div>
-      </div>
+        </form>
+      </FormProvider>
 
-      {/* Order Confirmation Modal */}
       {pendingOrderData && (
         <OrderConfirmationModal
           isOpen={showConfirmModal}
@@ -221,11 +248,12 @@ const Checkout = () => {
             setPendingOrderData(null);
           }}
           onConfirm={handleConfirmOrder}
-          orderReference={pendingOrderData.orderReference}
-          customerName={`${pendingOrderData.customerInfo.first_name} ${pendingOrderData.customerInfo.last_name}`}
-          deliveryAddress={`${pendingOrderData.customerInfo.shipping_address}, ${pendingOrderData.customerInfo.shipping_city}, ${pendingOrderData.customerInfo.shipping_state}`}
-          totalAmount={pendingOrderData.total}
-          itemCount={pendingOrderData.cartItems.length}
+          orderReference=""
+          customerName={`${pendingOrderData.first_name} ${pendingOrderData.last_name}`}
+          deliveryAddress={`${pendingOrderData.shipping_address}, ${pendingOrderData.shipping_city}, ${pendingOrderData.shipping_state_region}`}
+          totalAmount={cart.total}
+          itemCount={cart.items.length}
+          paymentMethod={pendingOrderData.payment_method}
         />
       )}
     </div>
@@ -233,4 +261,3 @@ const Checkout = () => {
 };
 
 export default Checkout;
-

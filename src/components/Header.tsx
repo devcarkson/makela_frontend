@@ -154,7 +154,6 @@ const Header = () => {
                     {itemCount}
                   </span>
                 )}
-                <span className="hidden sm:inline ml-2">Cart</span>
               </Link>
             </Button>
 

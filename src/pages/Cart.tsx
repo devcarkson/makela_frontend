@@ -1,15 +1,18 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/contexts/CartContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { getFirstImage } from '@/utils/imageUrl';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
+  const { isInitialized, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
 
   if (cart.items.length === 0) {
     return (
@@ -164,10 +167,20 @@ const Cart = () => {
                 </p>
               )}
 
-              <Button className="w-full" size="lg" asChild>
-                <Link to="/checkout">
-                  Proceed to Checkout
-                </Link>
+              <Button
+                className="w-full"
+                size="lg"
+                onClick={() => {
+                  if (!isInitialized) return;
+                  if (!isAuthenticated) {
+                    navigate('/login?redirect=/checkout');
+                  } else {
+                    navigate('/checkout');
+                  }
+                }}
+                disabled={!isInitialized}
+              >
+                Proceed to Checkout
               </Button>
             </CardContent>
           </Card>
