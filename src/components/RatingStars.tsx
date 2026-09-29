@@ -52,9 +52,9 @@ const RatingStars: React.FC<RatingStarsProps> = ({
               key={i}
               className={`${sizeClasses[size]} transition-colors ${
                 isActive
-                  ? 'text-brand-500 fill-current'
+                  ? 'text-rating fill-current'
                   : 'text-muted-foreground'
-              } ${!readonly ? 'cursor-pointer hover:text-brand-600' : ''}`}
+              } ${!readonly ? 'cursor-pointer hover:text-rating-hover' : ''}`}
               onClick={() => handleStarClick(starRating)}
               onMouseEnter={() => handleStarHover(starRating)}
               onMouseLeave={handleStarLeave}

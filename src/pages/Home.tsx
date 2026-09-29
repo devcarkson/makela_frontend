@@ -171,7 +171,7 @@ const Home = () => {
                             {slide.accent}
                           </span>
                         </h1>
-                        <p className="mt-5 max-w-lg text-base leading-7 text-muted-foreground sm:text-lg">
+                        <p className="mt-5 max-w-lg rounded-lg bg-background/80 px-3 py-2 text-base leading-7 text-muted-foreground backdrop-blur-sm sm:px-4 sm:text-lg md:bg-transparent md:px-0 md:py-0 md:backdrop-blur-none">
                           {slide.description}
                         </p>
                         <div className="mt-8 flex flex-col gap-3 sm:flex-row">

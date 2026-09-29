@@ -69,7 +69,7 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, isSliderCard = false
       <Star
         key={i}
         className={`h-3 w-3 ${
-          i < Math.floor(rating) ? 'text-brand-500 fill-current' : 'text-muted-foreground'
+          i < Math.floor(rating) ? 'text-rating fill-current' : 'text-muted-foreground'
         }`}
       />
     ));
