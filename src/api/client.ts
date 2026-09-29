@@ -29,6 +29,9 @@ apiClient.interceptors.request.use(
       return config;
     }
 
+    // Send Cache-Control: no-cache to bypass server-side cache middleware
+    config.headers['Cache-Control'] = 'no-cache';
+
     // Get tokens from storage
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const isPublicEndpoint = PUBLIC_ENDPOINTS.some(endpoint => 

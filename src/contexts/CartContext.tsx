@@ -2,13 +2,15 @@
 import React, { createContext, useContext, useReducer, ReactNode, useEffect, useState, useRef, useCallback } from 'react';
 import { useAuth } from './AuthContext';
 import { fetchCart, addCartItem, removeCartItem, updateCartItem, clearCart as clearCartApi } from '../api/cart';
-import { Product } from '../types/product.types';
+import { Product, ProductVariant } from '../types/product.types';
 
 export interface CartItem {
   id?: string;
   product: Product;
   quantity: number;
   backendId?: string;
+  variant?: ProductVariant | null;
+  variantId?: number | null;
 }
 
 export interface Cart {
@@ -17,7 +19,7 @@ export interface Cart {
 }
 
 type CartAction =
-  | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number } }
+  | { type: 'ADD_ITEM'; payload: { product: Product; quantity: number; variant?: ProductVariant | null; variantId?: number | null } }
   | { type: 'REMOVE_ITEM'; payload: { productId: string } }
   | { type: 'UPDATE_QUANTITY'; payload: { productId: string; quantity: number } }
   | { type: 'CLEAR_CART' }
@@ -39,21 +41,28 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 const cartReducer = (state: Cart, action: CartAction): Cart => {
   switch (action.type) {
     case 'ADD_ITEM': {
-      const { product, quantity } = action.payload;
-      const existingItem = state.items.find(item => item.product.id.toString() === product.id.toString());
+      const { product, quantity, variant, variantId } = action.payload;
+      // Match by both product ID and variant ID (or both null for no variant)
+      const existingItem = state.items.find(item => 
+        item.product.id.toString() === product.id.toString() &&
+        ((item.variantId || null) === (variantId || null))
+      );
 
       let newItems: CartItem[];
       if (existingItem) {
         newItems = state.items.map(item =>
-          item.product.id.toString() === product.id.toString()
+          item.product.id.toString() === product.id.toString() &&
+          (item.variantId || null) === (variantId || null)
             ? { ...item, quantity: item.quantity + quantity }
             : item
         );
       } else {
-        newItems = [...state.items, { product, quantity }];
+        newItems = [...state.items, { product, quantity, variant, variantId }];
       }
 
-      const total = newItems.reduce((sum, item) => sum + (item.product.price * item.quantity), 0);
+      const total = newItems.reduce((sum, item) => 
+        sum + (item.variant?.current_price || item.variant?.effective_price || item.product.price) * item.quantity, 0
+      );
       return { items: newItems, total };
     }
 
@@ -101,6 +110,10 @@ interface BackendCartItem {
   id: string | number;
   product: Product;
   quantity: number;
+  variant?: ProductVariant | null;
+  variant_id?: number | null;
+  size_name?: string;
+  color_name?: string;
 }
 
 interface BackendCartResponse {
@@ -114,6 +127,8 @@ const normalizeBackendCart = (backendCart: BackendCartResponse): Cart => {
       product: item.product,
       quantity: item.quantity,
       backendId: String(item.id),
+      variant: item.variant || null,
+      variantId: item.variant_id || null,
     })
   );
   return {
@@ -225,19 +240,40 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [isAuthenticated, refreshCart]);
 
   // Every action: optimistic dispatch (instant) + direct single backend API call (no refetch)
-  const addToCart = async (product: Product, quantity = 1) => {
+  const addToCart = async (
+    product: Product, 
+    quantity = 1,
+    variant: ProductVariant | null = null,
+    variantId: number | null = null
+  ) => {
     // Optimistic update — instant UI for both guest and logged-in users
-    dispatch({ type: 'ADD_ITEM', payload: { product, quantity } });
+    dispatch({ 
+      type: 'ADD_ITEM', 
+      payload: { product, quantity, variant, variantId } 
+    });
 
     if (isAuthenticated) {
       try {
-        const response = await addCartItem(Number(product.id), quantity);
+        const response = await addCartItem(
+          Number(product.id), 
+          quantity,
+          variantId || (variant?.id || null)
+        );
         const backendId = response?.data?.id || response?.data?.item?.id;
         if (backendId) {
-          dispatch({ type: 'SET_ITEM_ID', payload: { productId: String(product.id), itemId: String(backendId) } });
+          dispatch({ 
+            type: 'SET_ITEM_ID', 
+            payload: { 
+              productId: String(product.id), 
+              itemId: String(backendId) 
+            } 
+          });
         }
       } catch (e) {
-        dispatch({ type: 'REMOVE_ITEM', payload: { productId: String(product.id) } });
+        dispatch({ 
+          type: 'REMOVE_ITEM', 
+          payload: { productId: String(product.id) } 
+        });
         console.error('addCartItem error:', e);
       }
     }

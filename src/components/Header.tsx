@@ -65,8 +65,10 @@ const Header = () => {
         <div className="flex h-16 items-center justify-between gap-4">
           <Link to="/" className="flex items-center shrink-0">
             <img
-              src="/logo.jpeg?v=2"
+              src="/logo.webp?v=3"
               alt="Makela"
+              width={512}
+              height={146}
               className="block h-10 w-auto shrink-0"
               loading="eager"
               decoding="async"

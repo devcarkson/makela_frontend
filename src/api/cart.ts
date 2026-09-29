@@ -5,8 +5,16 @@ export const fetchCart = async () => {
   return data;
 };
 
-export const addCartItem = async (productId: string | number, quantity: number) => {
-  const response = await apiClient.post('/orders/cart/items/', { product_id: Number(productId), quantity });
+export const addCartItem = async (
+  productId: string | number, 
+  quantity: number,
+  variantId?: number | null
+) => {
+  const payload: any = { product_id: Number(productId), quantity };
+  if (variantId) {
+    payload.variant_id = Number(variantId);
+  }
+  const response = await apiClient.post('/orders/cart/items/', payload);
   return response;
 };
 
@@ -20,4 +28,4 @@ export const removeCartItem = async (itemId: string) => {
 
 export const clearCart = async () => {
   return apiClient.post('/orders/cart/clear/');
-}; 
+};

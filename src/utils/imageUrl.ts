@@ -47,10 +47,11 @@ export const getProductImage = (product: any, size: 'small' | 'medium' | 'large'
   if (product.primary_image) {
     const sizeMap = {
       small: 'thumbnail_small',
-      medium: 'thumbnail_medium', 
-      large: 'thumbnail_medium' // Use medium for large in list view
+      medium: 'thumbnail_medium',
+      large: 'thumbnail_large'
     };
-    return getImageUrl(product.primary_image[sizeMap[size]]);
+    const url = product.primary_image[sizeMap[size]] || product.primary_image.thumbnail_medium;
+    return getImageUrl(url);
   }
   
   // For detail view - use images array

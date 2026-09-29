@@ -6,14 +6,15 @@ import FeaturedSlider from '@/components/FeaturedSlider';
 import SkeletonFeaturedSlider from '@/components/SkeletonFeaturedSlider';
 import SimpleProductCard from '@/components/SimpleProductCard';
 import SkeletonProductCard from '@/components/SkeletonProductCard';
-import LoadingSpinner from '@/components/LoadingSpinner';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Gift, HeadphonesIcon, Shield, ShoppingBag, Sparkles, Truck } from 'lucide-react';
 import { useFeaturedProducts, useNewArrivalProducts, useProducts } from '@/hooks/useProducts';
+import { getProductImage } from '@/utils/imageUrl';
 import { Product } from '@/types/product.types';
 import ErrorMessage from '@/components/ErrorMessage';
 
 type HeroSlide = {
+  key: string;
   eyebrow: string;
   title: string;
   accent: string;
@@ -28,8 +29,17 @@ type HeroSlide = {
   icon: React.ReactNode;
 };
 
+const FALLBACK_HERO_IMAGE = '/SnapInsta.to_518212817_18114381505497623_2927998923866283814_n.jpg';
+
+// How many products the hero cycles through (the API caps page_size at 100)
+const HERO_PRODUCT_LIMIT = 24;
+
+// How many products the "Shop Our Products" grid shows
+const PRODUCT_GRID_SIZE = 8;
+
 const heroSlides: HeroSlide[] = [
   {
+    key: 'radiant-starts',
     eyebrow: 'New season favorites',
     title: 'Radiant starts',
     accent: 'here',
@@ -44,6 +54,7 @@ const heroSlides: HeroSlide[] = [
     icon: <Sparkles className="h-6 w-6" />,
   },
   {
+    key: 'beauty-simplified',
     eyebrow: 'Made for your routine',
     title: 'Beauty, simplified',
     accent: 'for you',
@@ -58,6 +69,7 @@ const heroSlides: HeroSlide[] = [
     icon: <ShoppingBag className="h-6 w-6" />,
   },
   {
+    key: 'treat-yourself',
     eyebrow: 'A little more joy',
     title: 'Treat yourself',
     accent: 'today',
@@ -76,14 +88,48 @@ const heroSlides: HeroSlide[] = [
 const Home = () => {
   const { data: featuredProducts, isLoading: isLoadingFeatured, error: errorFeatured, refetch: refetchFeatured } = useFeaturedProducts();
   const { data: newArrivals, isLoading: isLoadingNew, error: errorNew, refetch: refetchNew } = useNewArrivalProducts();
-  const { data: allProducts = [], isLoading: isLoadingProducts, error: errorProducts } = useProducts({ page_size: 6 });
+  // One request feeds both the hero carousel and the product grid below it
+  const { data: allProducts, isLoading: isLoadingProducts, error: errorProducts } = useProducts({ page_size: HERO_PRODUCT_LIMIT, is_active: true });
 
   const finalFeaturedProducts = featuredProducts || [];
   const finalNewArrivals = newArrivals || [];
 
-  const displayProducts: Product[] = Array.isArray(allProducts)
-    ? allProducts
-    : allProducts?.results || [];
+  const fetchedProducts: Product[] = React.useMemo(
+    () => (Array.isArray(allProducts) ? allProducts : allProducts?.results || []),
+    [allProducts]
+  );
+
+  const displayProducts = React.useMemo(
+    () => fetchedProducts.slice(0, PRODUCT_GRID_SIZE),
+    [fetchedProducts]
+  );
+  const heroProductList = fetchedProducts;
+
+  // One slide per product image; the original slide texts rotate unchanged
+  const activeHeroSlides = React.useMemo(() => {
+    const productImages = heroProductList
+      .filter((product) => product.primary_image || product.images?.length)
+      .map((product) => ({
+        key: product.slug,
+        image: getProductImage(product, 'large'),
+        imageAlt: product.name,
+      }));
+
+    if (productImages.length < 2) {
+      return heroSlides.map((slide, index) => ({
+        ...slide,
+        image: FALLBACK_HERO_IMAGE,
+        imageAlt: '',
+        priority: index < 3,
+      }));
+    }
+
+    return productImages.map((productImage, index) => ({
+      ...heroSlides[index % heroSlides.length],
+      ...productImage,
+      priority: index < 3,
+    }));
+  }, [heroProductList]);
 
   const [api, setApi] = React.useState<CarouselApi>();
   const [count, setCount] = React.useState(0);
@@ -116,15 +162,6 @@ const Home = () => {
     return () => window.clearInterval(autoSlide);
   }, [api, count, isPaused]);
 
-  if (isLoadingFeatured && isLoadingNew && isLoadingProducts &&
-      !featuredProducts && !newArrivals && allProducts.length === 0) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen w-full overflow-x-hidden">
       <section className="relative w-full" aria-label="Featured promotions">
@@ -144,18 +181,24 @@ const Home = () => {
             className="w-full"
           >
             <CarouselContent className="ml-0">
-              {heroSlides.map((slide) => (
-                <CarouselItem key={slide.title} className="pl-0">
+              {activeHeroSlides.map((slide) => {
+                return (
+                <CarouselItem key={slide.key} className="pl-0">
                   <div className={cn("relative flex min-h-[28rem] overflow-hidden md:h-[26rem] md:min-h-0 md:flex-row lg:h-[26rem] lg:min-h-0", slide.background)}>
                     <div className="absolute inset-0 bg-background md:static md:flex md:h-full md:min-h-0 md:w-1/2">
                       <img
-                        src="/SnapInsta.to_518212817_18114381505497623_2927998923866283814_n.jpg"
-                        alt=""
+                        key={slide.image}
+                        src={slide.image}
+                        alt={slide.imageAlt}
                         className="absolute inset-0 h-full w-full object-cover md:static md:h-full md:object-contain"
                         style={{ objectPosition: slide.imagePosition }}
-                        loading="eager"
+                        loading={slide.priority ? 'eager' : 'lazy'}
                         decoding="async"
-                        fetchpriority="high"
+                        fetchpriority={slide.priority ? 'high' : 'auto'}
+                        onError={(event) => {
+                          event.currentTarget.onerror = null;
+                          event.currentTarget.src = FALLBACK_HERO_IMAGE;
+                        }}
                       />
                     </div>
 
@@ -193,7 +236,8 @@ const Home = () => {
                     </div>
                   </div>
                 </CarouselItem>
-              ))}
+                );
+              })}
             </CarouselContent>
           </Carousel>
         </div>
@@ -279,7 +323,7 @@ const Home = () => {
           <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 gap-[2px]">
             {isLoadingProducts ? (
               // Show skeleton cards while loading
-              Array.from({ length: 6 }).map((_, index) => (
+              Array.from({ length: 8 }).map((_, index) => (
                 <SkeletonProductCard key={index} />
               ))
             ) : errorProducts ? (

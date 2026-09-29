@@ -57,60 +57,75 @@ const Cart = () => {
                     />
                   </div>
                   
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-sm md:text-base mb-1 line-clamp-2">
-                      <Link 
-                        to={`/product/${item.product.slug}`}
-                        className="hover:text-primary"
-                      >
-                        {item.product.name}
-                      </Link>
-                    </h3>
-                    <p className="text-muted-foreground text-xs md:text-sm mb-2 line-clamp-1 md:line-clamp-2">
-                      {item.product.description}
-                    </p>
-                    
-                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                      <span className="text-lg font-bold text-primary">
-                        £{Number(item.product.price).toLocaleString('en-GB')}
-                      </span>
-                      
-                      <div className="flex items-center justify-between md:justify-end gap-2">
-                        <div className="flex items-center border rounded-md">
-<Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => updateQuantity(item.product.id.toString(), item.quantity - 1)}
-                          disabled={item.quantity <= 1}
-                          className="h-8 w-8 p-0"
-                        >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="px-2 py-1 min-w-[2rem] text-center text-sm">
-                            {item.quantity}
-                          </span>
-<Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => updateQuantity(item.product.id.toString(), item.quantity + 1)}
-                          disabled={item.quantity >= item.product.stock}
-                          className="h-8 w-8 p-0"
-                        >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                        
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeFromCart(item.product.id.toString())}
-                          className="text-destructive hover:text-destructive h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+<div className="flex-1 min-w-0">
+                     <h3 className="font-semibold text-sm md:text-base mb-1 line-clamp-2">
+                       <Link 
+                         to={`/product/${item.product.slug}`}
+                         className="hover:text-primary"
+                       >
+                         {item.product.name}
+                       </Link>
+                     </h3>
+                      {/* Variant info */}
+                     {item.variant && (
+                       <div className="flex items-center gap-2 mb-2">
+                         {item.variant.color?.hex_code && (
+                           <span 
+                             className="w-4 h-4 rounded-full border border-gray-300"
+                             style={{ backgroundColor: item.variant.color.hex_code }}
+                           />
+                         )}
+                         <span className="text-xs text-muted-foreground">
+                           {item.variant.size?.name} / {item.variant.color?.name}
+                         </span>
+                       </div>
+                     )}
+                     
+                     <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                       <span className="text-lg font-bold text-primary">
+                         £{Number(
+                           item.variant?.current_price || 
+                           item.variant?.effective_price || 
+                           item.product.price
+                         ).toLocaleString('en-GB')}
+                       </span>
+                       
+                       <div className="flex items-center justify-between md:justify-end gap-2">
+                         <div className="flex items-center border rounded-md">
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => updateQuantity(item.product.id.toString(), item.quantity - 1)}
+                             disabled={item.quantity <= 1}
+                             className="h-8 w-8 p-0"
+                           >
+                             <Minus className="h-3 w-3" />
+                           </Button>
+                           <span className="px-2 py-1 min-w-[2rem] text-center text-sm">
+                             {item.quantity}
+                           </span>
+                           <Button
+                             variant="ghost"
+                             size="sm"
+                             onClick={() => updateQuantity(item.product.id.toString(), item.quantity + 1)}
+                             disabled={item.quantity >= (item.variant?.stock || item.product.stock)}
+                             className="h-8 w-8 p-0"
+                           >
+                             <Plus className="h-3 w-3" />
+                           </Button>
+                         </div>
+                         
+                         <Button
+                           variant="ghost"
+                           size="sm"
+                           onClick={() => removeFromCart(item.product.id.toString())}
+                           className="text-destructive hover:text-destructive h-8 w-8 p-0"
+                         >
+                           <Trash2 className="h-3 w-3" />
+                         </Button>
+                       </div>
+                     </div>
+                   </div>
                 </div>
               </CardContent>
             </Card>

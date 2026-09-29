@@ -7,6 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import FeaturedSlider from '@/components/FeaturedSlider';
 import RatingStars from '@/components/RatingStars';
 import LoadingSpinner from '@/components/LoadingSpinner';
@@ -28,6 +29,9 @@ const ProductDetail = () => {
   const [userRating, setUserRating] = useState(0);
   const [review, setReview] = useState('');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [selectedSize, setSelectedSize] = useState<string | null>(null);
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
 
   // Scroll to top when component mounts or slug changes
   useEffect(() => {
@@ -42,6 +46,38 @@ const ProductDetail = () => {
   const [reviewsError, setReviewsError] = useState('');
 
   const product = apiProduct;
+
+  // Get unique available sizes and colors from variants
+  const availableSizes = product?.has_variants && product.variants
+    ? [...new Set(product.variants.map(v => v.size.name))]
+    : [];
+  
+  const availableColors = product?.has_variants && product.variants
+    ? [...new Set(product.variants.map(v => v.color.name))]
+    : [];
+
+  // Find matching variant when size/color selection changes
+  useEffect(() => {
+    if (product?.has_variants && product.variants && selectedSize && selectedColor) {
+      const variant = product.variants.find(
+        v => v.size.name === selectedSize && v.color.name === selectedColor
+      );
+      setSelectedVariant(variant || null);
+      if (variant) {
+        setQuantity(1);
+      }
+    } else {
+      setSelectedVariant(null);
+    }
+  }, [selectedSize, selectedColor, product]);
+
+  // Reset selections when product changes
+  useEffect(() => {
+    setSelectedSize(null);
+    setSelectedColor(null);
+    setSelectedVariant(null);
+    setQuantity(1);
+  }, [slug]);
 
   // Fetch reviews
   const fetchReviews = async () => {
@@ -123,26 +159,50 @@ const ProductDetail = () => {
 
 
 
-  const handleAddToCart = () => {
+const handleAddToCart = () => {
+    // If product has variants, require selection
+    if (product.has_variants && !selectedVariant) {
+      toast({
+        title: "Please select options",
+        description: "Please select a size and color before adding to cart.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     // Convert Django API product to local Product type for cart
     const cartProduct = {
       id: product.id,
       name: product.name,
       slug: product.slug,
       description: product.description,
-      price: product.price,
+      price: selectedVariant?.current_price || product.price,
       discount_price: product.discount_price,
       is_featured: product.is_featured,
       is_new_arrival: product.is_new_arrival,
-      stock: product.stock,
+      stock: selectedVariant?.stock || product.stock,
       rating: product.rating,
       review_count: product.review_count,
       created_at: product.created_at,
       images: [productImages[0]],
-      category: product.category
+      category: product.category,
+      has_variants: product.has_variants,
+      variants: product.variants,
+      available_sizes: availableSizes,
+      available_colors: availableColors,
+      total_stock: product.total_stock,
+      selected_variant: selectedVariant ? {
+        id: selectedVariant.id,
+        size: selectedVariant.size,
+        color: selectedVariant.color,
+        price: selectedVariant.price,
+        stock: selectedVariant.stock,
+        current_price: selectedVariant.current_price,
+        effective_price: selectedVariant.effective_price,
+      } : undefined
     };
 
-    addToCart(cartProduct, quantity);
+    addToCart(cartProduct, quantity, selectedVariant, selectedVariant?.id || null);
     toast({
       title: "✨ Added to cart!",
       description: (
@@ -158,8 +218,11 @@ const ProductDetail = () => {
           </div>
           <div>
             <p className="font-medium">{product.name}</p>
-            <p className="text-sm text-muted-foreground">£{product.price.toLocaleString()} x {quantity}</p>
-          </div>
+            <p className="text-sm text-muted-foreground">
+              £{(selectedVariant?.current_price || product.price).toLocaleString()} x {quantity}
+              {selectedVariant && ` (${selectedVariant.size.name} / ${selectedVariant.color.name})`}
+            </p>
+</div>
         </div>
       ),
     });
@@ -288,15 +351,26 @@ const ProductDetail = () => {
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-4">
                 <span className="text-2xl lg:text-3xl font-bold text-primary">
-                  £{Number(product.price).toLocaleString('en-GB')}
+                  £{Number(
+                    selectedVariant?.current_price || 
+                    selectedVariant?.effective_price || 
+                    product.discount_price || 
+                    product.price
+                  ).toLocaleString('en-GB')}
                 </span>
-                {product.discount_price && (
+                {product.discount_price && !selectedVariant && (
                   <span className="text-lg text-muted-foreground line-through">
                     £{Number(product.price).toLocaleString('en-GB')}
                   </span>
                 )}
-                <Badge variant={product.stock > 0 ? "default" : "destructive"}>
-                  {product.stock > 0 ? `${product.stock} in stock` : 'Out of stock'}
+                <Badge variant={
+                  (selectedVariant ? selectedVariant.stock : product.stock) > 0 
+                    ? "default" : "destructive"
+                }>
+                  {(selectedVariant ? selectedVariant.stock : product.stock) > 0 
+                    ? `${selectedVariant ? selectedVariant.stock : product.stock} in stock` 
+                    : 'Out of stock'
+                  }
                 </Badge>
               </div>
             </div>
@@ -309,6 +383,91 @@ const ProductDetail = () => {
                 {product.description}
               </p>
             </div>
+
+            <Separator />
+
+            {/* Size and Color Options */}
+            {product.has_variants && availableSizes.length > 0 && (
+              <div className="space-y-4">
+                {/* Size Selector */}
+                <div>
+                  <label className="font-medium mb-2 block">
+                    Size <span className="text-destructive">*</span>
+                  </label>
+                  <Select value={selectedSize || ''} onValueChange={setSelectedSize}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a size" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableSizes.map(sizeName => {
+                        const variant = product.variants?.find(v => v.size.name === sizeName);
+                        return (
+                          <SelectItem key={sizeName} value={sizeName}>
+                            {sizeName}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Color Selector */}
+                <div>
+                  <label className="font-medium mb-2 block">
+                    Color <span className="text-destructive">*</span>
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {availableColors.map(colorName => {
+                      const variant = product.variants?.find(v => v.color.name === colorName);
+                      const hex = variant?.color.hex_code || '#ccc';
+                      const isSelected = selectedColor === colorName;
+                      const isAvailable = variant && selectedSize 
+                        ? variant.stock > 0 
+                        : true;
+                      
+                      return (
+                        <button
+                          key={colorName}
+                          onClick={() => isAvailable && setSelectedColor(colorName)}
+                          disabled={!isAvailable}
+                          className={`
+                            w-10 h-10 rounded-full border-2 transition-all
+                            ${isSelected ? 'border-primary scale-110' : 'border-gray-300'}
+                            ${!isAvailable ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:scale-105'}
+                          `}
+                          style={{ backgroundColor: hex }}
+                          title={`${colorName}${!isAvailable ? ' (out of stock)' : ''}`}
+                        />
+                      );
+                    })}
+                  </div>
+                  {selectedColor && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      Selected: {selectedColor}
+                    </p>
+                  )}
+                </div>
+
+                {/* Selected Variant Info */}
+                {selectedVariant && (
+                  <div className="p-3 bg-muted rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm">
+                        {selectedVariant.size.name} / {selectedVariant.color.name}
+                      </span>
+                      <div className="text-right">
+                        <span className="font-bold">
+                          £{selectedVariant.current_price?.toLocaleString() || selectedVariant.effective_price?.toLocaleString()}
+                        </span>
+                        <span className="text-xs text-muted-foreground ml-2">
+                          Stock: {selectedVariant.stock}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             <Separator />
 
@@ -331,8 +490,11 @@ const ProductDetail = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setQuantity(Math.min(product.stock, quantity + 1))}
-                    disabled={quantity >= product.stock}
+                    onClick={() => setQuantity(Math.min(
+                      selectedVariant?.stock || product.stock,
+                      quantity + 1
+                    ))}
+                    disabled={quantity >= (selectedVariant?.stock || product.stock)}
                   >
                     +
                   </Button>
@@ -342,12 +504,19 @@ const ProductDetail = () => {
               <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={handleAddToCart}
-                  disabled={product.stock === 0}
+                  disabled={
+                    product.stock === 0 || 
+                    (product.has_variants && !selectedVariant) ||
+                    (selectedVariant && selectedVariant.stock === 0)
+                  }
                   className="flex-1"
                   size="default"
                 >
                   <ShoppingCart className="h-4 w-4 mr-2" />
-                  Add to Cart
+                  {product.has_variants && !selectedVariant 
+                    ? 'Select Size & Color' 
+                    : 'Add to Cart'
+                  }
                 </Button>
                 <div className="flex gap-3">
                   <Button variant="outline" size="sm" onClick={handleAddToWishlist}>

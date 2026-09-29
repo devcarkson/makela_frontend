@@ -28,6 +28,8 @@ const queryClient = new QueryClient({
         retryDelay: 500,
         refetchOnWindowFocus: true, // Refetch when user returns to tab
         refetchOnMount: true, // Always refetch on mount
+        refetchInterval: 5000, // Poll every 5 seconds for near-instant updates
+        refetchIntervalInBackground: true, // Keep polling even when tab is inactive
       },
     },
   });

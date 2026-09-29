@@ -1,6 +1,6 @@
 
 // src/App.tsx
-import React from "react";
+import React, { Suspense, lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import ProtectedRoute from "@/components/ProtectedRoute";
@@ -8,31 +8,42 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ScrollToTop from "@/components/ScrollToTop";
 import Home from "@/pages/Home";
-import Products from "@/pages/Products";
-import ProductDetail from "@/pages/ProductDetail";
-import Cart from "@/pages/Cart";
-import Checkout from "@/pages/Checkout";
-import PaymentCallback from "@/pages/PaymentCallback";
-import Login from "@/pages/Auth/Login";
-import Signup from "@/pages/Auth/Signup";
-import ForgotPassword from "@/pages/Auth/ForgotPassword";
-import About from "@/pages/About";
-import Contact from "@/pages/Contact";
-import Dashboard from "@/pages/Dashboard";
-import Profile from "@/pages/Profile";
-import Addresses from "@/pages/Addresses";
-import Settings from "@/pages/Settings";
-import NotFound from "@/pages/NotFound";
-import OrderHistory from '@/pages/OrderHistory';
-import OrderDetail from '@/pages/OrderDetail';
-import Wishlist from '@/pages/Wishlist';
-import Notifications from '@/pages/Notifications';
+
+// The landing route stays in the main bundle; every other page is split out
+// so the first load does not download Checkout, Dashboard, etc.
+const Products = lazy(() => import("@/pages/Products"));
+const ProductDetail = lazy(() => import("@/pages/ProductDetail"));
+const Cart = lazy(() => import("@/pages/Cart"));
+const Checkout = lazy(() => import("@/pages/Checkout"));
+const PaymentCallback = lazy(() => import("@/pages/PaymentCallback"));
+const Login = lazy(() => import("@/pages/Auth/Login"));
+const Signup = lazy(() => import("@/pages/Auth/Signup"));
+const ForgotPassword = lazy(() => import("@/pages/Auth/ForgotPassword"));
+const About = lazy(() => import("@/pages/About"));
+const Contact = lazy(() => import("@/pages/Contact"));
+const Dashboard = lazy(() => import("@/pages/Dashboard"));
+const Profile = lazy(() => import("@/pages/Profile"));
+const Addresses = lazy(() => import("@/pages/Addresses"));
+const Settings = lazy(() => import("@/pages/Settings"));
+const NotFound = lazy(() => import("@/pages/NotFound"));
+const OrderHistory = lazy(() => import("@/pages/OrderHistory"));
+const OrderDetail = lazy(() => import("@/pages/OrderDetail"));
+const Wishlist = lazy(() => import("@/pages/Wishlist"));
+const Notifications = lazy(() => import("@/pages/Notifications"));
+
+const PageFallback = () => (
+  <div className="flex min-h-[60vh] w-full items-center justify-center" role="status" aria-label="Loading">
+    <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-primary" />
+  </div>
+);
+
 export default function App() {
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-x-hidden w-full">
       <ScrollToTop />
       <Header />
       <main className="flex-1 w-full overflow-x-hidden pt-16 lg:pt-20">
+        <Suspense fallback={<PageFallback />}>
         <Routes>
           {/* public */}
           <Route path="/" element={<Home />} />
@@ -116,6 +127,7 @@ export default function App() {
           {/* fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
       <Footer />
     </div>

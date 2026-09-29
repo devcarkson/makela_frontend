@@ -11,9 +11,27 @@ export interface Product {
   rating: number;
   review_count: number;
   created_at: string;
-  images?: ProductImage[]; // Full product details have images array
-  primary_image?: PrimaryImage; // List view has primary_image object
+  images?: ProductImage[];
+  primary_image?: PrimaryImage;
   category: Category;
+  // Variant support
+  has_variants?: boolean;
+  variants?: ProductVariant[];
+  available_sizes?: string[];
+  available_colors?: string[];
+  total_stock?: number;
+}
+
+export interface ProductVariant {
+  id: number;
+  size: { id: number; name: string; display_name: string; sort_order: number };
+  color: { id: number; name: string; hex_code: string };
+  price?: number;
+  stock: number;
+  sku?: string;
+  is_active: boolean;
+  effective_price?: number;
+  current_price?: number;
 }
 
 export interface ProductImage {
@@ -29,6 +47,7 @@ export interface PrimaryImage {
   id: number;
   thumbnail_small: string;
   thumbnail_medium: string;
+  thumbnail_large?: string;
 }
 
 export interface Category {
