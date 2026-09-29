@@ -6,7 +6,8 @@ export const getImageUrl = (imagePath: string): string => {
 
   // If imagePath is already a full URL
   if (imagePath.startsWith('http')) {
-    return imagePath;
+    // Force https: an http image on an https page is blocked as mixed content
+    return imagePath.startsWith('http://') ? `https://${imagePath.slice(7)}` : imagePath;
   }
 
   // If imagePath starts with "/media"
