@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import SimpleProductCard from '@/components/SimpleProductCard';
+import SkeletonProductCard from '@/components/SkeletonProductCard';
 import LoadingSpinner from '@/components/LoadingSpinner';
 import ErrorMessage from '@/components/ErrorMessage';
 import { useProductsInfinite } from '@/hooks/useProducts';
@@ -117,13 +118,8 @@ const Products = () => {
     });
   };
 
-  if (isLoading && !data) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
-  }
+  // No full-page loader: the header, filters and sort controls render straight
+  // away and only the product grid shows skeletons while data is in flight.
 
   // Only show error if we have no products at all (including fallback)
   if (error && products.length === 0) {
@@ -285,7 +281,13 @@ const Products = () => {
               </div>
             </div>
 
-            {products.length === 0 && !isLoading ? (
+            {isLoading && products.length === 0 ? (
+              <div className={`grid gap-[2px] ${viewMode === 'grid' ? 'grid-cols-2 lg:grid-cols-3' : 'grid-cols-1'}`}>
+                {Array.from({ length: 9 }).map((_, index) => (
+                  <SkeletonProductCard key={index} />
+                ))}
+              </div>
+            ) : products.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-lg text-muted-foreground">No products found.</p>
                 <Button onClick={clearFilters} className="mt-4">Clear Filters</Button>

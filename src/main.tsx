@@ -2,6 +2,7 @@
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
+import type { AxiosError } from "axios";
 
 import App from "./App";
 import { AuthProvider } from "./contexts/AuthContext";
@@ -16,9 +17,11 @@ import "./index.css";
 const queryClient = new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 0, // No caching — always fresh
-        gcTime: 0,
-        retry: (failureCount, error: any) => {
+        // Keep data in memory so coming back to a page renders instantly
+        // instead of flashing a skeleton and refetching from scratch.
+        staleTime: 60 * 1000, // Data is fresh for 1 min: no refetch on mount
+        gcTime: 5 * 60 * 1000, // Keep cached data 5 min after the last unmount
+        retry: (failureCount, error: AxiosError) => {
           // Don't retry on 4xx errors
           if (error?.response?.status >= 400 && error?.response?.status < 500) {
             return false;
@@ -26,10 +29,16 @@ const queryClient = new QueryClient({
           return failureCount < 2;
         },
         retryDelay: 500,
-        refetchOnWindowFocus: true, // Refetch when user returns to tab
-        refetchOnMount: true, // Always refetch on mount
-        refetchInterval: 5000, // Poll every 5 seconds for near-instant updates
-        refetchIntervalInBackground: true, // Keep polling even when tab is inactive
+        // Stale-while-revalidate: any refetch below happens in the background
+        // while the already-rendered data stays on screen, so updates still
+        // land within a second or so without the page ever blanking out.
+        refetchOnWindowFocus: true, // Re-check when the user comes back to the tab
+        refetchOnMount: true, // Re-check when navigating back to a page
+        refetchOnReconnect: true,
+        // No global polling: it re-requested every query every 5s forever,
+        // including background tabs. Focus/mount revalidation covers updates.
+        refetchInterval: false,
+        refetchIntervalInBackground: false,
       },
     },
   });

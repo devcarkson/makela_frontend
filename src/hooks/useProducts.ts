@@ -1,5 +1,5 @@
 // src/hooks/useProducts.ts
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import axios, { AxiosError } from 'axios';
 import { Product } from '@/types/product.types';
 import { PaginatedResponse } from '@/types';
@@ -41,6 +41,9 @@ export const useProductsInfinite = (params?: Record<string, unknown>) => {
       }
     },
     initialPageParam: 1,
+    // Keep the previous page of results on screen while the next one loads,
+    // so filters and pagination don't flash a skeleton
+    placeholderData: keepPreviousData,
     retry: (failureCount, error) => {
       // Don't retry on 500 errors, but retry on network errors
       if (error.response?.status === 500) return false;
@@ -55,6 +58,7 @@ export const useProducts = (params?: Record<string, unknown>) => {
   return useQuery<PaginatedResponse<Product>, AxiosError>({
     queryKey: ['products', params],
     queryFn: () => ProductService.getProducts(params),
+    placeholderData: keepPreviousData,
     retry: (failureCount, error) => {
       // Don't retry on 500 errors, but retry on network errors
       if (error.response?.status === 500) return false;

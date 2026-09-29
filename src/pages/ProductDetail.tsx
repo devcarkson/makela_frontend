@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import FeaturedSlider from '@/components/FeaturedSlider';
 import RatingStars from '@/components/RatingStars';
 import LoadingSpinner from '@/components/LoadingSpinner';
+import ProductDetailSkeleton from '@/components/ProductDetailSkeleton';
 import ErrorMessage from '@/components/ErrorMessage';
 import { useProduct } from '@/hooks/useProduct';
 import { useFeaturedProducts } from '@/hooks/useProducts';
@@ -109,11 +110,7 @@ const ProductDetail = () => {
   }, [slug]);
 
   if (isLoading) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <LoadingSpinner size="lg" />
-      </div>
-    );
+    return <ProductDetailSkeleton />;
   }
 
   // Only show error if we have no product at all (including fallback)
