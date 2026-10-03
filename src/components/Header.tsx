@@ -66,7 +66,7 @@ const Header = () => {
           <Link to="/" className="flex items-center shrink-0">
             <img
               src="/logo.webp?v=4"
-              alt="Makela"
+              alt="Makela Cosmetics"
               width={512}
               height={171}
               className="block h-12 w-auto shrink-0"
