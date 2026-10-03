@@ -1,0 +1,3 @@
+# Netlify-style SPA fallback. Only read by Netlify.
+# Apache/cPanel uses .htaccess, Render uses render.yaml.
+/*  /index.html  200

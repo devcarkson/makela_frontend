@@ -1,0 +1,13 @@
+# Render blueprint for the storefront (https://render.com).
+# The API/admin live on a separate host (api.makelacosmetic.uk), so the SPA
+# rewrite below is safe for every path on this site.
+services:
+  - type: web
+    name: makela-frontend
+    runtime: static
+    buildCommand: npm ci && npm run build
+    staticPublishPath: ./dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
