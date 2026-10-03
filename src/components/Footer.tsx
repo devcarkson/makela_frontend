@@ -11,7 +11,7 @@ const Footer = () => {
           {/* Brand Section */}
           <div className="space-y-4">
             <div className="flex items-center shrink-0">
-              <img src="/logo.webp?v=3" alt="Makela" width={512} height={146} className="block shrink-0" style={{ width: '192px', height: 'auto' }} loading="lazy" decoding="async" />
+              <img src="/logo.webp?v=4" alt="Makela" width={512} height={171} className="block shrink-0" style={{ width: '192px', height: 'auto' }} loading="lazy" decoding="async" />
             </div>
             <p className="text-muted-foreground">
               Your favorite destination for beautiful, trendy products. Shop with style and confidence.
