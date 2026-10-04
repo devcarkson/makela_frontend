@@ -6,8 +6,11 @@ import {
   updateAddress,
   deleteAddress,
   setDefaultAddress,
+  splitPhone,
+  joinPhone,
   Address as AddressType
 } from '@/api/addresses';
+import { apiErrorMessage } from '@/api/client';
 import { Plus, MapPin, Edit, Trash2, Home, Briefcase } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,60 +19,50 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { UK_EU_COUNTRIES, getStatesForCountry, getStateLabel } from '@/utils/countries';
 import { toast } from 'sonner';
 
-interface Address {
-  id: string;
-  type: 'home' | 'work' | 'other';
-  isDefault: boolean;
-  firstName: string;
-  lastName: string;
-  street: string;
-  city: string;
-  state: string;
-  zipCode?: string;
-  phone: string;
-}
+const EMPTY_FORM = {
+  type: 'home' as 'home' | 'work' | 'other',
+  firstName: '',
+  lastName: '',
+  street: '',
+  city: '',
+  state: '',
+  country: 'GB',
+  zipCode: '',
+  phoneCountryCode: '+44',
+  phone: '',
+};
+
+const PHONE_COUNTRY_CODES = UK_EU_COUNTRIES.map(country => country.phoneCode);
+
+// Everything the checkout shipping step needs.
+const REQUIRED_FIELDS: Array<{ key: keyof typeof EMPTY_FORM; label: string }> = [
+  { key: 'firstName', label: 'First name' },
+  { key: 'lastName', label: 'Last name' },
+  { key: 'street', label: 'Street address' },
+  { key: 'city', label: 'City' },
+  { key: 'state', label: 'State/Region' },
+  { key: 'country', label: 'Country' },
+  { key: 'zipCode', label: 'Postcode' },
+  { key: 'phone', label: 'Phone number' },
+];
+
+const countryName = (code?: string): string =>
+  UK_EU_COUNTRIES.find(country => country.code === (code ?? '').toUpperCase())?.name ?? (code || '—');
 
 const Addresses = () => {
   const [addresses, setAddresses] = useState<AddressType[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Safe API call wrapper that doesn't trigger logout on error
-  const safeApiCall = async (apiFunction: () => Promise<any>, errorMessage: string) => {
-    try {
-      return await apiFunction();
-    } catch (error: any) {
-      console.warn(`Addresses: ${errorMessage}:`, error);
-      return null;
-    }
-  };
-
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editingAddress, setEditingAddress] = useState<Address | null>(null);
-  const [formData, setFormData] = useState({
-    type: 'home' as 'home' | 'work' | 'other',
-    firstName: '',
-    lastName: '',
-    street: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    phone: '',
-  });
+  const [editingAddress, setEditingAddress] = useState<AddressType | null>(null);
+  const [formData, setFormData] = useState({ ...EMPTY_FORM });
 
   const resetForm = () => {
-    setFormData({
-      type: 'home',
-      firstName: '',
-      lastName: '',
-      street: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      phone: '',
-    });
+    setFormData({ ...EMPTY_FORM });
     setEditingAddress(null);
   };
 
@@ -81,44 +74,70 @@ const Addresses = () => {
     setFormData(prev => ({ ...prev, type: value }));
   };
 
+  const handleCountryChange = (value: string) => {
+    const phoneCode = UK_EU_COUNTRIES.find(country => country.code === value)?.phoneCode;
+    setFormData(prev => ({
+      ...prev,
+      country: value,
+      phoneCountryCode: phoneCode ?? prev.phoneCountryCode,
+      // Regions are country specific, so the old value cannot be kept.
+      state: '',
+    }));
+  };
+
   useEffect(() => {
-    // Temporarily disable API calls to prevent logout
-    setLoading(false);
-    setError('Addresses feature coming soon');
-    
-    // TODO: Re-enable when backend endpoints are ready
-    // const loadAddresses = async () => {
-    //   setLoading(true);
-    //   const data = await safeApiCall(fetchAddresses, 'Failed to fetch addresses');
-    //   if (data) {
-    //     setAddresses(data);
-    //   } else {
-    //     setError('Failed to load addresses');
-    //   }
-    //   setLoading(false);
-    // };
-    // loadAddresses();
+    let cancelled = false;
+    const loadAddresses = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchAddresses();
+        if (cancelled) return;
+        setAddresses(data);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        console.warn('Addresses: failed to fetch addresses:', err);
+        setError(apiErrorMessage(err, 'Failed to load addresses'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    loadAddresses();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSave = async () => {
+    const missing = REQUIRED_FIELDS.find(({ key, label }) => !formData[key]?.trim());
+    if (missing) {
+      toast.error(`${missing.label} is required`);
+      return;
+    }
+
+    const payload = {
+      ...formData,
+      // Store one international number so checkout can always reuse it.
+      phone: joinPhone(formData.phoneCountryCode, formData.phone),
+    };
+
     try {
       if (editingAddress) {
-        const updated = await updateAddress(editingAddress.id, formData);
+        const updated = await updateAddress(editingAddress.id, payload);
         setAddresses(prev => prev.map(addr => addr.id === updated.id ? updated : addr));
         toast.success('Address updated successfully');
       } else {
-        const created = await addAddress(formData);
+        const created = await addAddress(payload);
         setAddresses(prev => [...prev, created]);
         toast.success('Address added successfully');
       }
       setIsDialogOpen(false);
       resetForm();
     } catch (err) {
-      toast.error('Failed to save address');
+      toast.error(apiErrorMessage(err, 'Failed to save address'));
     }
   };
 
-  const handleEdit = (address: Address) => {
+  const handleEdit = (address: AddressType) => {
+    const { code, number } = splitPhone(address.phone);
     setEditingAddress(address);
     setFormData({
       type: address.type,
@@ -127,8 +146,10 @@ const Addresses = () => {
       street: address.street,
       city: address.city,
       state: address.state,
-      zipCode: address.zipCode,
-      phone: address.phone,
+      country: (address.country ?? 'GB').toUpperCase(),
+      zipCode: address.zipCode ?? '',
+      phoneCountryCode: PHONE_COUNTRY_CODES.includes(code) ? code : '+44',
+      phone: number,
     });
     setIsDialogOpen(true);
   };
@@ -240,7 +261,7 @@ const Addresses = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="city">City</Label>
+                  <Label htmlFor="city">City *</Label>
                   <Input
                     id="city"
                     name="city"
@@ -250,36 +271,82 @@ const Addresses = () => {
                   />
                 </div>
                 <div>
-                  <Label htmlFor="state">State</Label>
-                  <Input
-                    id="state"
-                    name="state"
+                  <Label htmlFor="country">Country *</Label>
+                  <Select value={formData.country} onValueChange={handleCountryChange}>
+                    <SelectTrigger id="country">
+                      <SelectValue placeholder="Select Country" />
+                    </SelectTrigger>
+                    <SelectContent position="item">
+                      {UK_EU_COUNTRIES.map(country => (
+                        <SelectItem key={country.code} value={country.code}>
+                          {country.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="state">State/Region *</Label>
+                  <Select
                     value={formData.state}
+                    onValueChange={value => setFormData(prev => ({ ...prev, state: value }))}
+                    disabled={!formData.country}
+                  >
+                    <SelectTrigger id="state">
+                      <SelectValue placeholder={formData.country ? 'Select Region' : 'Select Country First'} />
+                    </SelectTrigger>
+                    <SelectContent position="item">
+                      {getStatesForCountry(formData.country).map(state => (
+                        <SelectItem key={state.value} value={state.value}>
+                          {state.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <Label htmlFor="zipCode">Postcode / ZIP *</Label>
+                  <Input
+                    id="zipCode"
+                    name="zipCode"
+                    value={formData.zipCode}
                     onChange={handleInputChange}
+                    maxLength={10}
                     required
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="zipCode">ZIP Code (Optional)</Label>
-                <Input
-                  id="zipCode"
-                  name="zipCode"
-                  value={formData.zipCode}
-                  onChange={handleInputChange}
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input
-                  id="phone"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleInputChange}
-                  required
-                />
+                <Label htmlFor="phone">Phone Number *</Label>
+                <div className="flex gap-2">
+                  <Select
+                    value={formData.phoneCountryCode}
+                    onValueChange={value => setFormData(prev => ({ ...prev, phoneCountryCode: value }))}
+                  >
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue placeholder="+44" />
+                    </SelectTrigger>
+                    <SelectContent position="item">
+                      {PHONE_COUNTRY_CODES.map(code => (
+                        <SelectItem key={code} value={code}>
+                          {code}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Input
+                    id="phone"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="flex-1"
+                    required
+                  />
+                </div>
               </div>
 
               <Button onClick={handleSave} className="w-full">
@@ -314,10 +381,14 @@ const Addresses = () => {
                       <p className="font-medium">
                         {address.firstName} {address.lastName}
                       </p>
-                      <p className="text-sm text-muted-foreground">{address.street}</p>
                       <p className="text-sm text-muted-foreground">
-                        {address.city}, {address.state}{address.zipCode ? ` ${address.zipCode}` : ''}
+                        {address.street}
                       </p>
+                      <p className="text-sm text-muted-foreground">
+                        {address.city}, {getStateLabel(address.country, address.state)}
+                        {address.zipCode ? `, ${address.zipCode}` : ''}
+                      </p>
+                      <p className="text-sm text-muted-foreground">{countryName(address.country)}</p>
                       <p className="text-sm text-muted-foreground">{address.phone}</p>
                     </div>
                   </div>

@@ -5,13 +5,12 @@ import {
   deleteAccount,
   UserSettings
 } from '@/api/settings';
-import { Bell, Shield, Palette, Globe, CreditCard, Trash2 } from 'lucide-react';
+import { apiErrorMessage } from '@/api/client';
+import { Bell, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -22,33 +21,25 @@ const Settings = () => {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Safe API call wrapper that doesn't trigger logout on error
-  const safeApiCall = async (apiFunction: () => Promise<any>, errorMessage: string) => {
-    try {
-      return await apiFunction();
-    } catch (error: any) {
-      console.warn(`Settings: ${errorMessage}:`, error);
-      return null;
-    }
-  };
-
   useEffect(() => {
-    // Temporarily disable API calls to prevent logout
-    setLoading(false);
-    setError('Settings feature coming soon');
-    
-    // TODO: Re-enable when backend endpoints are ready
-    // const loadSettings = async () => {
-    //   setLoading(true);
-    //   const data = await safeApiCall(fetchSettings, 'Failed to fetch settings');
-    //   if (data) {
-    //     setSettings(data);
-    //   } else {
-    //     setError('Failed to load settings');
-    //   }
-    //   setLoading(false);
-    // };
-    // loadSettings();
+    let cancelled = false;
+    const loadSettings = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchSettings();
+        if (cancelled) return;
+        setSettings(data);
+      } catch (err: unknown) {
+        if (cancelled) return;
+        console.warn('Settings: failed to fetch settings:', err);
+        setError(apiErrorMessage(err, 'Failed to load settings'));
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    };
+    loadSettings();
+    return () => { cancelled = true; };
   }, []);
 
   const handleSettingChange = async (key: string, value: boolean | string) => {
@@ -88,7 +79,7 @@ const Settings = () => {
     <div className="container mx-auto px-4 py-8 max-w-4xl">
       <div className="mb-8">
         <h1 className="text-2xl md:text-3xl font-bold mb-2">Settings</h1>
-        <p className="text-muted-foreground">Manage your account preferences and settings.</p>
+        <p className="text-muted-foreground">Manage your notification settings.</p>
       </div>
 
       <div className="space-y-6">
@@ -147,120 +138,6 @@ const Settings = () => {
                 checked={settings.promotionalEmails}
                 onCheckedChange={(checked) => handleSettingChange('promotionalEmails', checked)}
               />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Security Settings */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Shield className="h-5 w-5" />
-              Security
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label htmlFor="two-factor">Two-Factor Authentication</Label>
-                <p className="text-sm text-muted-foreground">Add an extra layer of security to your account</p>
-              </div>
-              <Switch
-                id="two-factor"
-                checked={settings.twoFactorAuth}
-                onCheckedChange={(checked) => handleSettingChange('twoFactorAuth', checked)}
-              />
-            </div>
-
-            <Separator />
-
-            <div className="space-y-2">
-              <Button variant="outline" className="w-full">
-                Change Password
-              </Button>
-              <Button variant="outline" className="w-full">
-                Download Account Data
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Preferences */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Globe className="h-5 w-5" />
-              Preferences
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="language">Language</Label>
-                <Select value={settings.language} onValueChange={(value) => handleSettingChange('language', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="yo">Yorùbá</SelectItem>
-                    <SelectItem value="ig">Igbo</SelectItem>
-                    <SelectItem value="ha">Hausa</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="currency">Currency</Label>
-                <Select value={settings.currency} onValueChange={(value) => handleSettingChange('currency', value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="GBP">British Pound (£)</SelectItem>
-                    <SelectItem value="USD">US Dollar ($)</SelectItem>
-                    <SelectItem value="EUR">Euro (€)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="theme">Theme</Label>
-              <Select value={settings.theme} onValueChange={(value) => handleSettingChange('theme', value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="light">Light</SelectItem>
-                  <SelectItem value="dark">Dark</SelectItem>
-                  <SelectItem value="system">System</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Methods */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <CreditCard className="h-5 w-5" />
-              Payment Methods
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div>
-                  <p className="font-medium">**** **** **** 1234</p>
-                  <p className="text-sm text-muted-foreground">Expires 12/25</p>
-                </div>
-                <Button variant="outline" size="sm">Remove</Button>
-              </div>
-              <Button variant="outline" className="w-full">
-                Add Payment Method
-              </Button>
             </div>
           </CardContent>
         </Card>

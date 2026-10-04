@@ -42,8 +42,14 @@ export const getFirstImage = (images: any): string => {
   return '/placeholder.svg';
 };
 
-// Helper function to get image from product (handles both list and detail views)
+// Helper function to get image from product (handles list, detail and
+// minimal/wishlist payloads)
 export const getProductImage = (product: any, size: 'small' | 'medium' | 'large' = 'medium'): string => {
+  // Minimal payload (wishlist, order items) - a single ready-made URL
+  if (product.primary_image_url) {
+    return getImageUrl(product.primary_image_url);
+  }
+
   // For list view - use primary_image object
   if (product.primary_image) {
     const sizeMap = {

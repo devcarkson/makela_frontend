@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
-import apiClient from "../api/client";
+import apiClient, { refreshAccessToken } from "../api/client";
 
 interface AuthContextType {
   token: string | null;
@@ -82,8 +82,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    const currentRefresh = getStored("refresh");
     try {
-      await apiClient.post("/auth/logout/");
+      // Revoke the refresh token server side so the session really ends.
+      if (currentRefresh) {
+        await apiClient.post("/auth/logout/", { refresh: currentRefresh });
+      }
     } catch (error) {
       console.error("Logout error:", error);
     } finally {
@@ -96,28 +100,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const refreshToken = async (): Promise<boolean> => {
-    const currentRefresh = getStored("refresh");
-    if (!currentRefresh) return false;
-    
+    if (!getStored("refresh")) return false;
+
     try {
-      const response = await apiClient.post("/auth/token/refresh/", {
-        refresh: currentRefresh
-      });
-      
-      const newToken = response.data.access;
-      // Save new refresh token if provided (for rotation)
-      const newRefresh = response.data.refresh || currentRefresh;
-      const remember = localStorage.getItem("refresh") !== null;
+      // Shared with the api interceptor so a background refresh and a 401
+      // retry can never rotate the same single-use refresh token twice.
+      await refreshAccessToken();
+
+      const newToken = getStored("token");
+      const newRefresh = getStored("refresh");
       const currentUserId = getStored("userId");
       const currentEmail = getStored("email");
-      
-      if (currentUserId && currentEmail) {
-        setAuthStorage(newToken, newRefresh, parseInt(currentUserId, 10), currentEmail, remember);
-        setToken(newToken);
-        setRefresh(newRefresh);
-        return true;
-      }
-      return false;
+
+      if (!newToken || !currentUserId || !currentEmail) return false;
+
+      setToken(newToken);
+      setRefresh(newRefresh);
+      return true;
     } catch (error) {
       console.error("Token refresh failed:", error);
       // Don't call logout here to avoid circular dependency
@@ -152,16 +151,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     initializeAuth();
   }, []);
 
-  // Set up periodic token refresh (separate effect)
-  useEffect(() => {
-    if (!token) return;
-
-    const interval = setInterval(() => {
-      refreshToken();
-    }, 5 * 60 * 1000);
-
-    return () => clearInterval(interval);
-  }, [token]);
+  // Access tokens are long lived, so there is no periodic refresh: the api
+  // interceptor renews on demand if a token ever does expire or get revoked.
 
   return (
     <AuthContext.Provider

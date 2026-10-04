@@ -9,91 +9,104 @@ import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { fetchOrders } from '@/api/orders';
 import { fetchWishlist } from '@/api/wishlist';
+import { apiErrorMessage } from '@/api/client';
 // import { fetchNotifications } from '@/api/notifications';
+
+interface OrderSummary {
+  id: number;
+  status?: string;
+  date?: string;
+  created_at?: string;
+  total?: number;
+  total_price?: number;
+  total_items?: number;
+  items_count?: number;
+  items?: unknown[];
+}
+
+interface WishlistEntry {
+  id: number;
+  product?: Record<string, unknown>;
+}
 
 const Dashboard = () => {
   const { cart } = useCart();
   const { isAuthenticated, isInitialized } = useAuth();
 
-  // Safe API call wrapper that doesn't trigger logout on error
-  const safeApiCall = async (apiFunction: () => Promise<any>, errorMessage: string) => {
-    try {
-      return await apiFunction();
-    } catch (error: any) {
-      console.warn(`Dashboard: ${errorMessage}:`, error);
-      // Don't throw the error to prevent logout
-      return null;
-    }
-  };
-
   // State for API data
-  const [orders, setOrders] = useState<any[]>([]);
+  const [orders, setOrders] = useState<OrderSummary[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
   const [ordersError, setOrdersError] = useState('');
 
-  const [wishlist, setWishlist] = useState<any[]>([]);
+  const [wishlist, setWishlist] = useState<WishlistEntry[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(true);
   const [wishlistError, setWishlistError] = useState('');
 
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Record<string, unknown>[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState('');
 
-  // Fetch orders - temporarily disabled to prevent logout
+  // Fetch orders
   useEffect(() => {
     if (!isInitialized || !isAuthenticated) {
+      setOrdersLoading(false);
       return;
     }
-    
-    // Temporarily disable API calls to prevent logout
-    setOrdersLoading(false);
-    setOrdersError('Orders feature coming soon');
-    setOrders([]);
-    
-    // TODO: Re-enable when backend endpoints are ready
-    // const timer = setTimeout(async () => {
-    //   const data = await safeApiCall(fetchOrders, 'Failed to fetch orders');
-    //   if (data) {
-    //     if (Array.isArray(data)) {
-    //       setOrders(data);
-    //     } else if (data && Array.isArray(data.results)) {
-    //       setOrders(data.results);
-    //     } else {
-    //       setOrders([]);
-    //       setOrdersError('Unexpected response from server.');
-    //     }
-    //   } else {
-    //     setOrders([]);
-    //     setOrdersError('Failed to load orders');
-    //   }
-    //   setOrdersLoading(false);
-    // }, 1500);
-    // return () => clearTimeout(timer);
+
+    let cancelled = false;
+    const loadOrders = async () => {
+      setOrdersLoading(true);
+      setOrdersError('');
+      try {
+        const data = await fetchOrders();
+        if (cancelled) return;
+        if (Array.isArray(data)) {
+          setOrders(data);
+        } else if (data && Array.isArray(data.results)) {
+          setOrders(data.results);
+        } else {
+          setOrders([]);
+          setOrdersError('Unexpected response from server.');
+        }
+      } catch (error: unknown) {
+        if (cancelled) return;
+        console.warn('Dashboard: failed to fetch orders:', error);
+        setOrders([]);
+        setOrdersError(apiErrorMessage(error, 'Failed to load orders'));
+      } finally {
+        if (!cancelled) setOrdersLoading(false);
+      }
+    };
+    loadOrders();
+    return () => { cancelled = true; };
   }, [isInitialized, isAuthenticated]);
 
-  // Fetch wishlist - temporarily disabled to prevent logout
+  // Fetch wishlist
   useEffect(() => {
     if (!isInitialized || !isAuthenticated) {
+      setWishlistLoading(false);
       return;
     }
-    
-    // Temporarily disable API calls to prevent logout
-    setWishlistLoading(false);
-    setWishlistError('Wishlist feature coming soon');
-    setWishlist([]);
-    
-    // TODO: Re-enable when backend endpoints are ready
-    // const timer = setTimeout(async () => {
-    //   const data = await safeApiCall(fetchWishlist, 'Failed to fetch wishlist');
-    //   if (data) {
-    //     setWishlist(Array.isArray(data) ? data : data.results || []);
-    //   } else {
-    //     setWishlist([]);
-    //     setWishlistError('Failed to load wishlist');
-    //   }
-    //   setWishlistLoading(false);
-    // }, 2000);
-    // return () => clearTimeout(timer);
+
+    let cancelled = false;
+    const loadWishlist = async () => {
+      setWishlistLoading(true);
+      setWishlistError('');
+      try {
+        const data = await fetchWishlist();
+        if (cancelled) return;
+        setWishlist(Array.isArray(data) ? data : data?.results ?? []);
+      } catch (error: unknown) {
+        if (cancelled) return;
+        console.warn('Dashboard: failed to fetch wishlist:', error);
+        setWishlist([]);
+        setWishlistError(apiErrorMessage(error, 'Failed to load wishlist'));
+      } finally {
+        if (!cancelled) setWishlistLoading(false);
+      }
+    };
+    loadWishlist();
+    return () => { cancelled = true; };
   }, [isInitialized, isAuthenticated]);
 
   // Fetch notifications
@@ -185,7 +198,7 @@ const Dashboard = () => {
                           <span className="font-medium">Order #{order.id}</span>
                           <Badge variant={getStatusColor(order.status)}>{order.status}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{order.date || order.created_at || ''} • {order.items?.length || order.items_count || 0} items</p>
+                        <p className="text-sm text-muted-foreground">{order.date || order.created_at || ''} • {order.total_items ?? order.items?.length ?? order.items_count ?? 0} items</p>
                       </div>
                       <div className="text-right">
                         <p className="font-semibold">£{order.total || order.total_price || 0}</p>
