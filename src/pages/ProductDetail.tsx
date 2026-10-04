@@ -154,6 +154,17 @@ const ProductDetail = () => {
     return ['/placeholder.svg'];
   })();
 
+  // Full resolution urls for the fullscreen viewer
+  const fullProductImages = (() => {
+    if (product.images && Array.isArray(product.images) && product.images.length > 0) {
+      return product.images.map((img: ProductImage) =>
+        getImageUrl(typeof img === 'string' ? img : img.image || img.thumbnail_large)
+      );
+    }
+
+    return productImages;
+  })();
+
 
 
 const handleAddToCart = () => {
@@ -322,7 +333,11 @@ const handleAddToCart = () => {
         <div className="grid lg:grid-cols-2 gap-8 lg:gap-12">
           {/* Product Image Slider */}
           <div className="w-full">
-            <ProductImageSlider images={productImages} productName={product.name} />
+            <ProductImageSlider
+              images={productImages}
+              fullImages={fullProductImages}
+              productName={product.name}
+            />
           </div>
 
           {/* Product Info */}

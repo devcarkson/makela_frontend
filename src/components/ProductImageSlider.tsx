@@ -1,26 +1,53 @@
-
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Maximize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import ProductImageLightbox from '@/components/ProductImageLightbox';
 
 interface ProductImageSliderProps {
   images: string[];
   productName: string;
+  /** Full resolution urls used by the fullscreen viewer. Falls back to `images`. */
+  fullImages?: string[];
 }
 
-const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, productName }) => {
+const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, productName, fullImages }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  const viewerImages =
+    fullImages && fullImages.length === images.length ? fullImages : images;
+
+  const openLightbox = () => setLightboxOpen(true);
 
   if (images.length <= 1) {
     return (
-      <div className="aspect-square w-full overflow-hidden rounded-lg bg-muted">
-        <img
-          src={images[0]}
-          alt={productName}
-          className="w-full h-full object-cover"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
+      <div className="w-full space-y-4">
+        <button
+          type="button"
+          onClick={openLightbox}
+          aria-label={`View ${productName} image fullscreen`}
+          className="group relative block aspect-square w-full cursor-zoom-in overflow-hidden rounded-lg bg-muted"
+        >
+          <img
+            src={images[0]}
+            alt={productName}
+            className="h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+          <span className="pointer-events-none absolute bottom-2 right-2 flex items-center gap-1.5 rounded bg-background/80 px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100">
+            <Maximize2 className="h-3.5 w-3.5" />
+            View fullscreen
+          </span>
+        </button>
+
+        <ProductImageLightbox
+          images={viewerImages}
+          productName={productName}
+          open={lightboxOpen}
+          startIndex={0}
+          onOpenChange={setLightboxOpen}
         />
       </div>
     );
@@ -38,15 +65,33 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
     <div className="w-full space-y-4">
       {/* Main Image */}
       <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-muted group">
-        <img
-          src={images[currentIndex]}
-          alt={`${productName} - Image ${currentIndex + 1}`}
-          className="w-full h-full object-cover"
-          loading="eager"
-          decoding="async"
-          fetchpriority="high"
-        />
-        
+        <button
+          type="button"
+          onClick={openLightbox}
+          aria-label={`View ${productName} image ${currentIndex + 1} fullscreen`}
+          className="block h-full w-full cursor-zoom-in"
+        >
+          <img
+            src={images[currentIndex]}
+            alt={`${productName} - Image ${currentIndex + 1}`}
+            className="h-full w-full object-cover"
+            loading="eager"
+            decoding="async"
+            fetchpriority="high"
+          />
+        </button>
+
+        {/* Fullscreen hint */}
+        <button
+          type="button"
+          onClick={openLightbox}
+          aria-label="View image fullscreen"
+          className="absolute bottom-2 right-12 flex cursor-zoom-in items-center gap-1.5 rounded bg-background/80 px-2 py-1 text-xs opacity-0 transition-opacity group-hover:opacity-100"
+        >
+          <Maximize2 className="h-3.5 w-3.5" />
+          Fullscreen
+        </button>
+
         {/* Navigation Arrows */}
         <Button
           variant="outline"
@@ -56,7 +101,7 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
-        
+
         <Button
           variant="outline"
           size="icon"
@@ -92,6 +137,14 @@ const ProductImageSlider: React.FC<ProductImageSliderProps> = ({ images, product
           </button>
         ))}
       </div>
+
+      <ProductImageLightbox
+        images={viewerImages}
+        productName={productName}
+        open={lightboxOpen}
+        startIndex={currentIndex}
+        onOpenChange={setLightboxOpen}
+      />
     </div>
   );
 };
