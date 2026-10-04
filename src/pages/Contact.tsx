@@ -184,8 +184,7 @@ const Contact = () => {
                   <div>
                     <p className="font-medium">Address</p>
                     <p className="text-muted-foreground">
-                      30 Stanley Road
-                      Liverpool, UK
+                      United Kingdom
                     </p>
                   </div>
                 </div>

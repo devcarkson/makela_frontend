@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { ChevronLeft, ChevronRight, X, ZoomIn, ZoomOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 interface ProductImageLightboxProps {
@@ -97,15 +97,25 @@ const ProductImageLightbox: React.FC<ProductImageLightboxProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         className="flex max-w-[95vw] flex-col gap-3 border-none bg-transparent p-0 shadow-none sm:max-w-[95vw] sm:rounded-none"
+        hideCloseButton
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="flex items-center justify-between gap-4 px-1 pr-10 text-white">
+        {/* Close button - anchored to the dialog corner with a large touch target */}
+        <DialogClose
+          aria-label="Close image viewer"
+          className="absolute right-2 top-2 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-slate-900 shadow-lg ring-1 ring-black/10 transition hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white active:scale-95 sm:right-3 sm:top-3"
+        >
+          <X className="h-5 w-5 sm:h-6 sm:w-6" strokeWidth={2.5} />
+        </DialogClose>
+
+        {/* Top bar: product name + counter */}
+        <div className="flex items-center justify-between gap-4 py-1 pl-1 pr-14 text-white sm:pr-16">
           <DialogTitle className="min-w-0 truncate text-left text-sm font-medium text-white/90">
             {productName} image {index + 1} of {count}
           </DialogTitle>
           {count > 1 && (
-            <span className="shrink-0 rounded-full bg-white/15 px-3 py-1 text-xs tabular-nums text-white">
+            <span className="shrink-0 rounded-full bg-white/20 px-3 py-1 text-xs font-medium tabular-nums text-white ring-1 ring-inset ring-white/25">
               {index + 1} / {count}
             </span>
           )}
