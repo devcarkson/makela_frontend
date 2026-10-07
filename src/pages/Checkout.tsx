@@ -221,14 +221,8 @@ const Checkout: React.FC = () => {
         } else {
           throw new Error('Payment URL not received from server');
         }
-      } else if (pendingOrderData.payment_method === 'flutterwave') {
-        const paymentUrl = orderData.payment_url;
-        if (paymentUrl) {
-          toast.success('Redirecting to Flutterwave for payment...');
-          window.location.href = paymentUrl;
-        } else {
-          throw new Error('Payment URL not received from server');
-        }
+      } else if (pendingOrderData.payment_method === 'bank_transfer' || pendingOrderData.payment_method === 'cash_on_delivery') {
+        toast.success('Order placed successfully! Payment instructions will be sent via email.');
       }
     } catch (error: unknown) {
       console.error('Checkout error:', error);

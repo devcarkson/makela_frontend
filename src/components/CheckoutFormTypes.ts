@@ -9,5 +9,5 @@ export interface CheckoutFormData {
   shipping_state_region: string;
   shipping_country: string;
   shipping_zip_code: string;
-  payment_method: 'stripe' | 'flutterwave';
+  payment_method: 'stripe' | 'bank_transfer' | 'cash_on_delivery';
 }

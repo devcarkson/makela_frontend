@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Loader } from 'lucide-react';
+import { CreditCard, Loader, Building2, Truck } from 'lucide-react';
 import { UK_EU_COUNTRIES, COUNTRY_STATES, getStatesForCountry, GB_POSTCODE_REGEX, CountryOption } from '@/utils/countries';
 import Flag from '@/components/Flag';
 import { CheckoutFormData } from './CheckoutFormTypes';
@@ -225,7 +225,7 @@ export const PaymentSection: React.FC<{ isLoading?: boolean }> = ({ isLoading })
     setValue('payment_method', value as CheckoutFormData['payment_method'], { shouldValidate: true });
   };
 
-  return (
+return (
     <>
       <div className="pt-4">
         <Label>Payment Method *</Label>
@@ -238,31 +238,50 @@ export const PaymentSection: React.FC<{ isLoading?: boolean }> = ({ isLoading })
             }`}
             onClick={() => !isLoading && handlePaymentMethodChange('stripe')}
           >
-              <div className="flex items-center gap-3">
-                <CreditCard className="h-5 w-5 text-primary" />
-                <div className="flex-1">
-                  <label className="font-medium">Card via Stripe</label>
-                  <p className="text-sm text-muted-foreground">
-                    Pay securely with Stripe
-                  </p>
-                </div>
+            <div className="flex items-center gap-3">
+              <CreditCard className="h-5 w-5 text-primary" />
+              <div className="flex-1">
+                <label className="font-medium">Card via Stripe</label>
+                <p className="text-sm text-muted-foreground">
+                  Pay securely with Stripe
+                </p>
               </div>
+            </div>
           </div>
 
           <div
             className={`border rounded-lg p-4 cursor-pointer ${
-              watchedPaymentMethod === 'flutterwave'
+              watchedPaymentMethod === 'bank_transfer'
                 ? 'border-primary bg-secondary'
                 : 'border-muted'
             }`}
-            onClick={() => !isLoading && handlePaymentMethodChange('flutterwave')}
+            onClick={() => !isLoading && handlePaymentMethodChange('bank_transfer')}
           >
             <div className="flex items-center gap-3">
-              <CreditCard className="h-5 w-5 text-primary" />
+              <Building2 className="h-5 w-5 text-primary" />
               <div className="flex-1">
-                <label className="font-medium">All Payment Method via Flutterwave</label>
+                <label className="font-medium">Bank Transfer</label>
                 <p className="text-sm text-muted-foreground">
-                  Pay securely with Flutterwave
+                  Pay via bank transfer
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div
+            className={`border rounded-lg p-4 cursor-pointer ${
+              watchedPaymentMethod === 'cash_on_delivery'
+                ? 'border-primary bg-secondary'
+                : 'border-muted'
+            }`}
+            onClick={() => !isLoading && handlePaymentMethodChange('cash_on_delivery')}
+          >
+            <div className="flex items-center gap-3">
+              <Truck className="h-5 w-5 text-primary" />
+              <div className="flex-1">
+                <label className="font-medium">Cash on Delivery</label>
+                <p className="text-sm text-muted-foreground">
+                  Pay when you receive your order
                 </p>
               </div>
             </div>
@@ -281,9 +300,7 @@ export const PaymentSection: React.FC<{ isLoading?: boolean }> = ({ isLoading })
             Processing Order...
           </>
         ) : (
-          watchedPaymentMethod === 'flutterwave'
-            ? 'Pay with Flutterwave'
-            : 'Pay with Stripe'
+          'Pay with Stripe'
         )}
       </Button>
     </>
