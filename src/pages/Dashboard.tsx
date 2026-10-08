@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { User, ShoppingBag, Heart, Settings, Package, CreditCard, MapPin, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,24 @@ interface WishlistEntry {
 const Dashboard = () => {
   const { cart } = useCart();
   const { isAuthenticated, isInitialized } = useAuth();
+
+  // Helper to format ISO date string
+  const formatDate = (dateString?: string) => {
+    if (!dateString) return '';
+    try {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return '';
+    }
+  };
+
+  // Helper to safely parse numeric values from API
+  const parseAmount = (value: unknown): number => {
+    if (value === null || value === undefined) return 0;
+    const num = Number(value);
+    return isNaN(num) ? 0 : num;
+  };
 
   // State for API data
   const [orders, setOrders] = useState<OrderSummary[]>([]);
@@ -128,13 +146,13 @@ const Dashboard = () => {
   const successfulStatuses = ['processing', 'shipped', 'delivered'];
   const totalSpent = orders
     .filter(order => successfulStatuses.includes(order.status))
-    .reduce((sum, order) => sum + (order.total || order.total_price || 0), 0);
+    .reduce((sum, order) => sum + parseAmount(order.total), 0);
 
   const stats = [
     { label: 'Total Orders', value: ordersLoading ? '...' : totalOrders, icon: Package },
     { label: 'Items in Cart', value: cart.items.length.toString(), icon: ShoppingBag },
     { label: 'Wishlist Items', value: wishlistLoading ? '...' : wishlistCount, icon: Heart },
-    { label: 'Total Spent', value: ordersLoading ? '...' : `£${Number(totalSpent).toLocaleString()}`, icon: CreditCard },
+    { label: 'Total Spent', value: ordersLoading ? '...' : `£${totalSpent.toLocaleString()}`, icon: CreditCard },
   ];
 
   const getStatusColor = (status: string) => {
@@ -198,10 +216,10 @@ const Dashboard = () => {
                           <span className="font-medium">Order #{order.id}</span>
                           <Badge variant={getStatusColor(order.status)}>{order.status}</Badge>
                         </div>
-                        <p className="text-sm text-muted-foreground">{order.date || order.created_at || ''} • {order.total_items ?? order.items?.length ?? order.items_count ?? 0} items</p>
+                        <p className="text-sm text-muted-foreground">{formatDate(order.date || order.created_at)} • {order.total_items ?? order.items?.length ?? order.items_count ?? 0} items</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-semibold">£{order.total || order.total_price || 0}</p>
+                        <p className="font-semibold">£{parseAmount(order.total).toLocaleString()}</p>
                         <Button variant="outline" size="sm" className="mt-2" asChild>
                           <Link to={`/orders/${order.id}`}>View Details</Link>
                         </Button>
