@@ -16,7 +16,6 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    username: '',
     email: '',
     phone: '',
     first_name: '',
@@ -54,7 +53,6 @@ const Signup = () => {
 
     try {
       const payload = {
-        username: formData.username,
         email: formData.email,
         password: formData.password,
         phone: formData.phone,
@@ -119,21 +117,6 @@ const Signup = () => {
                   required
                 />
                 {errors.last_name && <p className="text-destructive text-sm mt-1">{errors.last_name[0]}</p>}
-              </div>
-
-              {/* Username */}
-              <div>
-                <Label htmlFor="username" className="text-brand-700 font-semibold">Username</Label>
-                <Input
-                  id="username"
-                  name="username"
-                  type="text"
-                  placeholder="Enter your username"
-                  value={formData.username}
-                  onChange={handleInputChange}
-                  required
-                />
-                {errors.username && <p className="text-destructive text-sm mt-1">{errors.username[0]}</p>}
               </div>
 
               {/* Email */}
