@@ -217,17 +217,9 @@ export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           console.error('Error syncing cart:', e);
         }
       } else {
-        // Logging out: load from localStorage
-        const savedCart = localStorage.getItem('cart');
-        if (savedCart) {
-          try {
-            dispatch({ type: 'SET_CART', payload: JSON.parse(savedCart) });
-          } catch (e) {
-            dispatch({ type: 'SET_CART', payload: { items: [], total: 0 } });
-          }
-        } else {
-          dispatch({ type: 'SET_CART', payload: { items: [], total: 0 } });
-        }
+        // Logging out: clear localStorage cart and reset to empty
+        localStorage.removeItem('cart');
+        dispatch({ type: 'CLEAR_CART' });
       }
       if (!cancelled) setLoading(false);
     };
