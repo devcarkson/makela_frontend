@@ -7,6 +7,7 @@ import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/api/client';
 import { toast } from 'sonner';
 import { Link } from 'react-router-dom';
+import { useCart } from '@/contexts/CartContext';
 
 interface PaymentSuccessData {
   order: {
@@ -27,6 +28,7 @@ interface PaymentSuccessData {
 const PaymentSuccess = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { clearCart } = useCart();
   const sessionId = searchParams.get('session_id');
   const [verified, setVerified] = useState(false);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
@@ -47,8 +49,10 @@ const PaymentSuccess = () => {
     if (data && !verified) {
       setVerified(true);
       toast.success('Payment verified successfully!');
+      // Clear cart after successful payment
+      clearCart();
     }
-  }, [data, verified]);
+  }, [data, verified, clearCart]);
 
   useEffect(() => {
     if (error && !isLoading) {
