@@ -35,7 +35,7 @@ const EMPTY_FORM = {
   phone: '',
 };
 
-const PHONE_COUNTRY_CODES = UK_EU_COUNTRIES.map(country => country.phoneCode);
+const PHONE_COUNTRY_CODES = ['+44'];
 
 // Everything the checkout shipping step needs.
 const REQUIRED_FIELDS: Array<{ key: keyof typeof EMPTY_FORM; label: string }> = [
@@ -49,8 +49,7 @@ const REQUIRED_FIELDS: Array<{ key: keyof typeof EMPTY_FORM; label: string }> = 
   { key: 'phone', label: 'Phone number' },
 ];
 
-const countryName = (code?: string): string =>
-  UK_EU_COUNTRIES.find(country => country.code === (code ?? '').toUpperCase())?.name ?? (code || '—');
+const countryName = (_code?: string): string => 'United Kingdom';
 
 const Addresses = () => {
   const [addresses, setAddresses] = useState<AddressType[]>([]);
@@ -277,11 +276,9 @@ const Addresses = () => {
                       <SelectValue placeholder="Select Country" />
                     </SelectTrigger>
                     <SelectContent position="item">
-                      {UK_EU_COUNTRIES.map(country => (
-                        <SelectItem key={country.code} value={country.code}>
-                          {country.name}
-                        </SelectItem>
-                      ))}
+                    <SelectItem key="GB" value="GB">
+                      United Kingdom
+                    </SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

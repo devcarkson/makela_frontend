@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, CreditCard, Lock, ShoppingBag } from 'lucide-react';
+import { CheckCircle, Lock } from 'lucide-react';
 
 interface OrderConfirmationModalProps {
   isOpen: boolean;
@@ -12,7 +12,7 @@ interface OrderConfirmationModalProps {
   deliveryAddress: string;
   totalAmount: number;
   itemCount: number;
-  paymentMethod?: 'stripe' | 'bank_transfer' | 'cash_on_delivery';
+  paymentMethod?: 'stripe';
 }
 
 const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
@@ -26,18 +26,6 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
   itemCount,
   paymentMethod = 'stripe'
 }) => {
-  const paymentLabels: Record<string, string> = {
-    stripe: 'Stripe Secure Payment',
-    bank_transfer: 'Bank Transfer',
-    cash_on_delivery: 'Cash on Delivery'
-  };
-
-  const paymentIcons: Record<string, React.ReactNode> = {
-    stripe: <Lock className="h-4 w-4" />,
-    bank_transfer: <CreditCard className="h-4 w-4" />,
-    cash_on_delivery: <ShoppingBag className="h-4 w-4" />
-  };
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
@@ -56,7 +44,7 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
               <p><strong>Customer:</strong> {customerName}</p>
               <p><strong>Items:</strong> {itemCount} item{itemCount !== 1 ? 's' : ''}</p>
               <p><strong>Total:</strong> £{totalAmount.toLocaleString()}</p>
-              <p><strong>Payment Method:</strong> {paymentLabels[paymentMethod] || paymentMethod}</p>
+              <p><strong>Payment Method:</strong> Stripe Secure Payment</p>
             </div>
           </div>
 
@@ -71,14 +59,11 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
           </div>
 
           <div className="flex items-start gap-3 p-3 bg-accent border border-accent rounded-lg">
-            <ShoppingBag className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
+            <Lock className="h-4 w-4 text-primary mt-0.5 flex-shrink-0" />
             <div>
               <p className="font-medium text-primary text-sm">What happens next?</p>
               <p className="text-primary text-sm">
-                {paymentMethod === 'stripe'
-                  ? 'You will be redirected to Stripe to complete your payment. After payment, your order will be confirmed and processed for delivery.'
-                  : 'Your order has been placed. We will contact you with payment instructions.'
-                }
+                You will be redirected to Stripe to complete your payment. After payment, your order will be confirmed and processed for delivery.
               </p>
             </div>
           </div>
@@ -92,17 +77,8 @@ const OrderConfirmationModal: React.FC<OrderConfirmationModalProps> = ({
             onClick={onConfirm}
             className="bg-primary hover:bg-primary/90 text-primary-foreground flex items-center gap-2"
           >
-            {paymentMethod === 'stripe' ? (
-              <>
-                <Lock className="h-4 w-4" />
-                Pay with Stripe
-              </>
-            ) : (
-              <>
-                {paymentIcons[paymentMethod]}
-                Place Order
-              </>
-            )}
+            <Lock className="h-4 w-4" />
+            Pay with Stripe
           </Button>
         </DialogFooter>
       </DialogContent>

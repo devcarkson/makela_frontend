@@ -194,6 +194,7 @@ const handleAddToCart = () => {
       created_at: product.created_at,
       images: [productImages[0]],
       category: product.category,
+      weight: product.weight,
       has_variants: product.has_variants,
       variants: product.variants,
       available_sizes: availableSizes,
@@ -391,12 +392,20 @@ const handleAddToCart = () => {
 
             <div>
               <h3 className="font-semibold mb-2">Description</h3>
-              <p className="text-muted-foreground leading-relaxed">
+              <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">
                 {product.description}
               </p>
             </div>
 
             <Separator />
+
+            {/* Weight */}
+            {product.weight && product.weight > 0 && (
+              <div className="flex justify-between items-center mb-4">
+                <span className="text-muted-foreground">Weight:</span>
+                <span className="font-medium">{product.weight} kg</span>
+              </div>
+            )}
 
             {/* Size and Color Options */}
             {product.has_variants && availableSizes.length > 0 && (

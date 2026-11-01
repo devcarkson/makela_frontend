@@ -28,6 +28,21 @@ export interface CheckoutResponse {
   status?: string;
 }
 
+export interface ShippingFeeResponse {
+  shipping_fee: string;
+}
+
+export const getShippingFee = async (
+  city: string,
+  country: string,
+  subtotal?: number
+): Promise<ShippingFeeResponse> => {
+  const params = new URLSearchParams({ city, country });
+  if (subtotal !== undefined) params.set('subtotal', String(subtotal));
+  const response = await apiClient.get(`/orders/shipping-fee/?${params.toString()}`);
+  return response.data;
+};
+
 export const createCheckout = async (
   data: CheckoutData,
   token: string

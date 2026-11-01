@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { useCart } from '@/contexts/CartContext';
 import { useAuth } from '@/contexts/AuthContext';
 import { getFirstImage } from '@/utils/imageUrl';
+import { calculateShippingByWeight, formatShippingFee } from '@/utils/shipping';
 
 const Cart = () => {
   const { cart, updateQuantity, removeFromCart, clearCart } = useCart();
@@ -31,9 +32,12 @@ const Cart = () => {
     );
   }
 
-  const shipping = cart.total > 50 ? 0 : 9.99;
-  const tax = cart.total * 0.00;
-  const finalTotal = cart.total + shipping + tax;
+  const totalWeightKg = cart.items.reduce(
+    (sum, item) => sum + (item.product.weight || 0) * item.quantity,
+    0
+  );
+  const { fee: shippingFee } = calculateShippingByWeight(totalWeightKg);
+  const finalTotal = cart.total + shippingFee;
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -152,21 +156,9 @@ const Cart = () => {
                 <span>Subtotal ({cart.items.length} items)</span>
                 <span>£{cart.total.toLocaleString()}</span>
               </div>
-              
               <div className="flex justify-between text-sm">
                 <span>Shipping</span>
-                <span>
-                  {shipping === 0 ? (
-                    <span className="text-primary">Free</span>
-                  ) : (
-                    `£${shipping.toFixed(2)}`
-                  )}
-                </span>
-              </div>
-              
-              <div className="flex justify-between text-sm">
-                <span>Tax</span>
-                <span>£{tax.toLocaleString()}</span>
+                <span className="text-muted-foreground">{formatShippingFee(shippingFee)}</span>
               </div>
               
               <Separator />
@@ -175,12 +167,6 @@ const Cart = () => {
                 <span>Total</span>
                 <span>£{finalTotal.toLocaleString()}</span>
               </div>
-
-              {cart.total < 30000 && (
-                <p className="text-xs text-muted-foreground">
-                  Add £{(30000 - cart.total).toLocaleString()} more for free shipping!
-                </p>
-              )}
 
               <Button
                 className="w-full"

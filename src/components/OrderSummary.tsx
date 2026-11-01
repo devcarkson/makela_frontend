@@ -1,17 +1,61 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Cart } from '@/types';
+import { getShippingFee } from '@/api/checkout';
+import { calculateShippingByWeight, formatShippingFee } from '@/utils/shipping';
 
 interface OrderSummaryProps {
   cart: Cart;
+  shippingCity?: string;
+  shippingCountry?: string;
 }
 
-const OrderSummary: React.FC<OrderSummaryProps> = ({ cart }) => {
-  const shipping = cart.total > 0 ? 0 : 99;
-  const tax = Math.round(cart.total * 0.00);
-  const finalTotal = cart.total + shipping + tax;
+const OrderSummary: React.FC<OrderSummaryProps> = ({ cart, shippingCity, shippingCountry }) => {
+  const totalWeightKg = cart.items.reduce(
+    (sum, item) => sum + (item.product.weight || 0) * item.quantity,
+    0
+  );
+  const { fee: calculatedShippingFee } = calculateShippingByWeight(totalWeightKg);
+  const [shipping, setShipping] = useState<number | null>(calculatedShippingFee);
+  const [shippingLoading, setShippingLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchShippingFee = async () => {
+      if (!shippingCity?.trim() || !shippingCountry?.trim()) {
+        setShipping(calculatedShippingFee);
+        setShippingLoading(false);
+        return;
+      }
+      setShippingLoading(true);
+      try {
+        const subtotal = Math.round(cart.total * 100);
+        const data = await getShippingFee(shippingCity.trim(), shippingCountry.trim(), subtotal);
+        const fee = parseFloat(data.shipping_fee);
+        setShipping(isNaN(fee) ? calculatedShippingFee : fee);
+      } catch {
+        setShipping(calculatedShippingFee);
+      } finally {
+        setShippingLoading(false);
+      }
+    };
+    fetchShippingFee();
+  }, [shippingCity, shippingCountry, cart.total, calculatedShippingFee]);
+
+  // Determine what to display for shipping
+  let shippingLabel: string;
+  let shippingAmount = 0;
+  if (shippingLoading) {
+    shippingLabel = 'Calculating...';
+    shippingAmount = 0;
+  } else if (shipping === null) {
+    shippingLabel = formatShippingFee(calculatedShippingFee);
+    shippingAmount = calculatedShippingFee;
+  } else {
+    shippingLabel = `£${shipping.toFixed(2)}`;
+    shippingAmount = shipping;
+  }
 
   return (
     <Card className="sticky top-4">
@@ -40,11 +84,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ cart }) => {
           </div>
           <div className="flex justify-between text-sm">
             <span>Shipping</span>
-            <span>{shipping === 0 ? 'Depend On Your Address' : `£${shipping.toLocaleString()}`}</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span>Tax (0%)</span>
-            <span>£{tax.toLocaleString()}</span>
+            <span>{shippingLabel}</span>
           </div>
         </div>
 
@@ -52,14 +92,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({ cart }) => {
 
         <div className="flex justify-between font-bold text-lg">
           <span>Total</span>
-          <span>£{finalTotal.toLocaleString()}</span>
+          <span>£{(cart.total + shippingAmount).toFixed(2)}</span>
         </div>
-
-        {cart.total < 30000 && (
-          <p className="text-xs text-muted-foreground text-center">
-            Add £{(30000 - cart.total).toLocaleString()} more for free shipping!
-          </p>
-        )}
       </CardContent>
     </Card>
   );

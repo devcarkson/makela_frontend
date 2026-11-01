@@ -8,6 +8,7 @@ export interface Product {
   is_featured: boolean;
   is_new_arrival: boolean;
   stock: number;
+  weight: number;
   rating: number;
   review_count: number;
   created_at: string;

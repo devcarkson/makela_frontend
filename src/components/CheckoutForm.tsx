@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { CreditCard, Loader, Building2, Truck } from 'lucide-react';
+import { CreditCard, Loader } from 'lucide-react';
 import { UK_EU_COUNTRIES, COUNTRY_STATES, getStatesForCountry, GB_POSTCODE_REGEX, CountryOption } from '@/utils/countries';
 import Flag from '@/components/Flag';
 import { CheckoutFormData } from './CheckoutFormTypes';
@@ -61,14 +61,9 @@ export const ShippingFields: React.FC<{ isLoading?: boolean }> = ({ isLoading })
               <SelectValue placeholder="Code" />
             </SelectTrigger>
             <SelectContent position="item">
-              {UK_EU_COUNTRIES.map((country: CountryOption) => (
-                <SelectItem key={country.code} value={country.phoneCode}>
-                  <span className="flex items-center gap-2">
-                    <Flag countryCode={country.code} />
-                    <span>{country.phoneCode}</span>
-                  </span>
-                </SelectItem>
-              ))}
+              <SelectItem key="GB" value="+44">
+                +44
+              </SelectItem>
             </SelectContent>
           </Select>
           <Input
@@ -173,22 +168,17 @@ export const ShippingFields: React.FC<{ isLoading?: boolean }> = ({ isLoading })
         <div>
           <Label htmlFor="shipping_country">Country *</Label>
           <Select
-            value={watchedCountry}
+            value={watchedCountry || 'GB'}
             onValueChange={handleCountryChange}
-            disabled={isLoading}
+            disabled={true}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select Country" />
+              <SelectValue placeholder="United Kingdom" />
             </SelectTrigger>
             <SelectContent position="item">
-              {UK_EU_COUNTRIES.map((country) => (
-                <SelectItem key={country.code} value={country.code}>
-                  <span className="flex items-center gap-2">
-                    <Flag countryCode={country.code} />
-                    <span>{country.name}</span>
-                  </span>
-                </SelectItem>
-              ))}
+              <SelectItem key="GB" value="GB">
+                United Kingdom
+              </SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -244,44 +234,6 @@ return (
                 <label className="font-medium">Card via Stripe</label>
                 <p className="text-sm text-muted-foreground">
                   Pay securely with Stripe
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`border rounded-lg p-4 cursor-pointer ${
-              watchedPaymentMethod === 'bank_transfer'
-                ? 'border-primary bg-secondary'
-                : 'border-muted'
-            }`}
-            onClick={() => !isLoading && handlePaymentMethodChange('bank_transfer')}
-          >
-            <div className="flex items-center gap-3">
-              <Building2 className="h-5 w-5 text-primary" />
-              <div className="flex-1">
-                <label className="font-medium">Bank Transfer</label>
-                <p className="text-sm text-muted-foreground">
-                  Pay via bank transfer
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div
-            className={`border rounded-lg p-4 cursor-pointer ${
-              watchedPaymentMethod === 'cash_on_delivery'
-                ? 'border-primary bg-secondary'
-                : 'border-muted'
-            }`}
-            onClick={() => !isLoading && handlePaymentMethodChange('cash_on_delivery')}
-          >
-            <div className="flex items-center gap-3">
-              <Truck className="h-5 w-5 text-primary" />
-              <div className="flex-1">
-                <label className="font-medium">Cash on Delivery</label>
-                <p className="text-sm text-muted-foreground">
-                  Pay when you receive your order
                 </p>
               </div>
             </div>

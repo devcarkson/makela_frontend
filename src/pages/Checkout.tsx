@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import { useForm, FormProvider } from 'react-hook-form';
+import { useForm, FormProvider, useWatch } from 'react-hook-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCart } from '@/contexts/CartContext';
@@ -27,11 +27,8 @@ const SHIPPING_FIELDS: Array<keyof CheckoutFormData> = [
   'shipping_zip_code',
 ];
 
-// Saved addresses store a free-text country, but checkout only ships to the
-// countries in UK_EU_COUNTRIES - so only prefill values the form can display.
-const toSupportedCountry = (country?: string): string | null => {
-  const code = (country ?? '').trim().toUpperCase();
-  return UK_EU_COUNTRIES.some(option => option.code === code) ? code : null;
+const toSupportedCountry = (_country?: string): string | null => {
+  return 'GB';
 };
 
 const toSupportedState = (country: string, state?: string): string => {
@@ -72,6 +69,9 @@ const Checkout: React.FC = () => {
     }
   }, [isAuthenticated, navigate]);
 
+  const watchedCity = useWatch({ control: methods.control, name: 'shipping_city' });
+  const watchedCountry = useWatch({ control: methods.control, name: 'shipping_country' });
+
   const defaultAddress = useMemo(
     () => addresses.find(address => address.isDefault) ?? addresses[0] ?? null,
     [addresses]
@@ -109,6 +109,7 @@ const Checkout: React.FC = () => {
       if (field === 'shipping_country' || field === 'phone_country_code') return;
       methods.setValue(field, '');
     });
+    methods.setValue('shipping_country', 'GB');
   };
 
   useEffect(() => {
@@ -125,6 +126,8 @@ const Checkout: React.FC = () => {
         if (preferred) {
           setSelectedAddressId(preferred.id);
           applyAddress(preferred);
+        } else {
+          methods.setValue('shipping_country', 'GB');
         }
       } catch (error) {
         // Never block checkout on this - the shipping form is the fallback.
@@ -136,6 +139,7 @@ const Checkout: React.FC = () => {
     loadAddresses();
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
+    methods.setValue('shipping_country', 'GB');
   }, [isAuthenticated]);
 
   const handleCheckoutSubmit = async (formData: CheckoutFormData) => {
@@ -221,8 +225,6 @@ const Checkout: React.FC = () => {
         } else {
           throw new Error('Payment URL not received from server');
         }
-      } else if (pendingOrderData.payment_method === 'bank_transfer' || pendingOrderData.payment_method === 'cash_on_delivery') {
-        toast.success('Order placed successfully! Payment instructions will be sent via email.');
       }
     } catch (error: unknown) {
       console.error('Checkout error:', error);
@@ -360,7 +362,7 @@ const Checkout: React.FC = () => {
             </div>
 
             <div className="lg:col-span-1">
-              <OrderSummary cart={cart} />
+              <OrderSummary cart={cart} shippingCity={watchedCity} shippingCountry={watchedCountry} />
             </div>
 
             <div className="lg:col-span-2">
